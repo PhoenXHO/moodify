@@ -1,16 +1,62 @@
-# emotion_music_player
+# Emotion-Driven Music Player
 
-A new Flutter project.
+## 🛠 Setup Instructions
 
-## Getting Started
+### 1️⃣ Prerequisites
+Make sure you have the following installed:
+- **Flutter** (Stable version) → [Install Guide](https://flutter.dev/docs/get-started/install)
+- **Android Studio** (for emulator & SDK)
+- **VS Code** or **IntelliJ/Android Studio** (for development)
+- **Git** (already installed if you cloned the repo)
 
-This project is a starting point for a Flutter application.
+### 2️⃣ Clone the Repository
+```sh
+git clone <repo-url>
+cd <project-folder>
+```
 
-A few resources to get you started if this is your first Flutter project:
+### 3️⃣ Install Dependencies
+```sh
+flutter pub get
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### 4️⃣ Setup Android Emulator (or Connect a Physical Device)
+#### 📱 **Option 1: Using an Emulator**
+1. Open **Android Studio**
+2. Go to **Tools > Device Manager**
+3. Create and start an **Android Emulator** (API 35 recommended)
+You are going to need to have the following installed:
+- **Android SDK Platform 35**: Go to **Tools > SDK Manager > SDK Platforms**
+- ***Android SDK Build-Tools** (latest)
+- ***Android SDK Command-line Tools** (latest)
+- ***Android Emulator 35**
+- ***Android SDK Platform-Tools** (latest)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+\* Go to **Tools > SDK Manager > SDK Tools**
+
+#### 🔌 **Option 2: Using a Physical Device**
+1. Enable **Developer Options** & **USB Debugging** on your phone
+2. Connect it to your PC via USB
+3. Run:
+```sh
+flutter devices
+```
+Ensure your device appears in the list.
+
+### 5️⃣ Run the App
+```sh
+flutter run
+```
+Choose your emulator/device from the list.
+
+### 🐞 Troubleshooting
+- If Flutter doesn't detect your device/emulator:
+  ```sh
+  flutter doctor --android-licenses
+  flutter doctor
+  ```
+- If you get dependency issues:
+  ```sh
+  flutter clean
+  flutter pub get
+  ```
