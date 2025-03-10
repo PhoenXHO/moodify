@@ -1,8 +1,12 @@
 import 'package:emotion_music_player/pages/bottomnav.dart';
 import 'package:emotion_music_player/pages/chat.dart';
+import 'package:emotion_music_player/pages/login.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
-void main() {
+void main() async {
+   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -33,7 +37,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home:BottomNav()
+      home:LoginScreen()
     );
   }
 }
