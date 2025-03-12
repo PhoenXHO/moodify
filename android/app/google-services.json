@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "337811894536",
+    "project_id": "emotionmusicplayer-12734",
+    "storage_bucket": "emotionmusicplayer-12734.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:337811894536:android:d66e1d0573b28562837cbd",
+        "android_client_info": {
+          "package_name": "com.example.emotion_music_player"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAmyegQYh4LXrymaHzA0VuGaJ5iU4m7Mw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
