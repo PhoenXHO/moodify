@@ -1,3 +1,7 @@
+# Files and directories preceded by ~i~ are ignored
+~i~*
+~i~*/
+
 # Miscellaneous
 *.class
 *.log

@@ -1,13 +1,14 @@
+import 'package:emotion_music_player/viewmodels/auth_viewmodel.dart';
 import 'package:flutter/material.dart';
-import '../Services/authentication.dart';
-import '../Widget/snackbar.dart';
-import '../Widget/text_field.dart';
-import '../Widget/button.dart'; // Assurez-vous que ce fichier est bien importé
+import 'package:provider/provider.dart';
+import '../../widgets/snackbar.dart';
+import '../../widgets/text_field.dart';
+import '../../widgets/button.dart'; // Assurez-vous que ce fichier est bien importé
 import 'signup.dart';
-import 'bottomnav.dart';
+import '../../widgets/bottomnav.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({ super.key });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -16,8 +17,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  bool isLoading = false;
 
+  // Dispose of the controllers when the widget is removed from the tree
   @override
   void dispose() {
     emailController.dispose();
@@ -25,33 +26,27 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // Authentification de l'utilisateur
   void loginUser() async {
-    setState(() {
-      isLoading = true;
-    });
+    final viewmodel = Provider.of<AuthViewModel>(context, listen: false);
 
-    String res = await AuthMethod().loginUser(
-      email: emailController.text.trim(),
-      password: passwordController.text.trim(),
+    final success = await viewmodel.login(
+      emailController.text.trim(),
+      passwordController.text.trim(),
     );
 
-    setState(() {
-      isLoading = false;
-    });
-
-    if (res == "success") {
+    if (success && mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const BottomNav()),
       );
-    } else {
-      showSnackBar(context, res);
+    } else if (mounted && viewmodel.errorMessage != null) {
+      showSnackBar(context, viewmodel.errorMessage!);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     double height = MediaQuery.of(context).size.height;
+    final viewmodel = Provider.of<AuthViewModel>(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -82,9 +77,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   isPass: true,
                 ),
                 const SizedBox(height: 20),
-                isLoading
-                    ? const CircularProgressIndicator()
-                    : MyButtons(onTap: loginUser, text: "Log In"),
+                viewmodel.isLoading ?
+                    const CircularProgressIndicator() :
+                    MyButtons(onTap: loginUser, text: "Log In"),
                 const SizedBox(height: 15),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,

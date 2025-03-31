@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:emotion_music_player/pages/Home.dart';
-import 'package:emotion_music_player/pages/Playlist.dart';
-import 'package:emotion_music_player/pages/chat.dart';
-import 'package:emotion_music_player/pages/fav.dart';
-import 'package:emotion_music_player/pages/settings.dart';
+import 'package:emotion_music_player/views/home.dart';
+import 'package:emotion_music_player/views/playlists.dart';
+import 'package:emotion_music_player/views/chat.dart';
+import 'package:emotion_music_player/views/favorites.dart';
+import 'package:emotion_music_player/views/settings.dart';
+import 'package:provider/provider.dart';
+
+import '../viewmodels/favorites_viewmodel.dart';
 
 class BottomNav extends StatefulWidget {
   const BottomNav({super.key});
@@ -14,23 +17,17 @@ class BottomNav extends StatefulWidget {
 
 class _BottomNavState extends State<BottomNav> {
   int currentTabIndex = 0;
-
-  late List<Widget> pages;
-  late Home homepages;
-  late Chat chat;
-  late Fav fav;
-  late Settings settings;
-  late Playlist playlist;
+  late List<Widget> screens;
 
   @override
   void initState() {
-    homepages = Home();
-    chat = Chat();
-    fav = Fav();
-    settings = Settings();
-    playlist = Playlist();
-
-    pages = [homepages, playlist, chat, fav, settings];
+    screens = [
+      HomeScreen(),
+      PlaylistsScreen(),
+      ChatScreen(),
+      FavoritesScreen(),
+      SettingsScreen()
+    ];
     super.initState();
   }
 
@@ -57,13 +54,17 @@ class _BottomNavState extends State<BottomNav> {
           ],
         ),
       ),
-      body: pages[currentTabIndex],
+      body: screens[currentTabIndex],
     );
   }
 
   Widget _navItem(IconData icon, int index) {
     return GestureDetector(
       onTap: () {
+        if (currentTabIndex == 3 && index != 3) {
+          // Clean up unfavorited songs when navigating away from the Favorites screen
+          Provider.of<FavoritesViewModel>(context, listen: false).cleanupUnfavoritedSongs();
+        }
         setState(() {
           currentTabIndex = index;
         });

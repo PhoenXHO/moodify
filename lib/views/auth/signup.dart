@@ -1,10 +1,10 @@
-import 'package:emotion_music_player/Widget/button.dart';
-import 'package:emotion_music_player/pages/bottomnav.dart';
+import 'package:emotion_music_player/widgets/button.dart';
+import 'package:emotion_music_player/widgets/bottomnav.dart';
 import 'package:flutter/material.dart';
-
-import '../Services/authentication.dart';
-import '../Widget/snackbar.dart';
-import '../Widget/text_field.dart';
+import 'package:provider/provider.dart';
+import '../../viewmodels/auth_viewmodel.dart';
+import '../../widgets/snackbar.dart';
+import '../../widgets/text_field.dart';
 
 import 'login.dart';
 
@@ -16,7 +16,7 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  final TextEditingController nameController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool isLoading = false;
@@ -26,42 +26,32 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
     emailController.dispose();
     passwordController.dispose();
-    nameController.dispose();
+    usernameController.dispose();
   }
 
   void signupUser() async {
-    // set is loading to true.
-    setState(() {
-      isLoading = true;
-    });
-    // signup user using our authmethod
-    String res = await AuthMethod().signupUser(
-        email: emailController.text,
-        password: passwordController.text,
-        name: nameController.text);
-    // if string return is success, user has been creaded and navigate to next screen other witse show error.
-    if (res == "success") {
-      setState(() {
-        isLoading = false;
-      });
-      //navigate to the next screen
+    final viewmodel = Provider.of<AuthViewModel>(context, listen: false);
+
+    final success = await viewmodel.signUp(
+      emailController.text.trim(),
+      passwordController.text.trim(),
+      usernameController.text.trim(),
+    );
+
+    if (success && mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => const BottomNav(),
-        ),
+        MaterialPageRoute(builder: (context) => const BottomNav()),
       );
-    } else {
-      setState(() {
-        isLoading = false;
-      });
-      // show error
-      showSnackBar(context, res);
+    } else if (mounted && viewmodel.errorMessage != null) {
+      showSnackBar(context, viewmodel.errorMessage!);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     double height = MediaQuery.of(context).size.height;
+    final viewmodel = Provider.of<AuthViewModel>(context);
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: SafeArea(
@@ -75,8 +65,8 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
             TextFieldInput(
                 icon: Icons.person,
-                textEditingController: nameController,
-                hintText: 'Enter your name',
+                textEditingController: usernameController,
+                hintText: 'Enter your username',
                 textInputType: TextInputType.text),
             TextFieldInput(
                 icon: Icons.email,
@@ -90,7 +80,9 @@ class _SignupScreenState extends State<SignupScreen> {
               textInputType: TextInputType.text,
               isPass: true,
             ),
-            MyButtons(onTap: signupUser, text: "Sign Up"),
+            viewmodel.isLoading ?
+                const CircularProgressIndicator() :
+                MyButtons(onTap: signupUser, text: "Sign Up"),
             const SizedBox(height: 50),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
