@@ -33,9 +33,9 @@ class _SignupScreenState extends State<SignupScreen> {
     final viewmodel = Provider.of<AuthViewModel>(context, listen: false);
 
     final success = await viewmodel.signUp(
+      usernameController.text.trim(),
       emailController.text.trim(),
       passwordController.text.trim(),
-      usernameController.text.trim(),
     );
 
     if (success && mounted) {
