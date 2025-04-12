@@ -8,11 +8,11 @@ class SongListWidget extends StatelessWidget {
   final Function onFavoriteToggle;
 
   const SongListWidget({
-    Key? key,
+    super.key,
     required this.songs,
     required this.isLoading,
     required this.onFavoriteToggle,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
