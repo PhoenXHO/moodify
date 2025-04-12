@@ -7,6 +7,8 @@ import 'package:emotion_music_player/views/settings.dart';
 import 'package:provider/provider.dart';
 
 import '../viewmodels/favorites_viewmodel.dart';
+import '../viewmodels/player_viewmodel.dart';
+import 'mini_player.dart';
 
 class BottomNav extends StatefulWidget {
   const BottomNav({super.key});
@@ -17,23 +19,30 @@ class BottomNav extends StatefulWidget {
 
 class _BottomNavState extends State<BottomNav> {
   int currentTabIndex = 0;
-  late List<Widget> screens;
 
-  @override
-  void initState() {
-    screens = [
-      HomeScreen(),
-      PlaylistsScreen(),
-      ChatScreen(),
-      FavoritesScreen(),
-      SettingsScreen()
-    ];
-    super.initState();
-  }
+  final List<Widget> screens = const [
+    HomeScreen(),
+    PlaylistsScreen(),
+    ChatScreen(),
+    FavoritesScreen(),
+    SettingsScreen()
+  ];
 
   @override
   Widget build(BuildContext context) {
+    // Listen to player changes explicitly
+    final playerViewModel = Provider.of<PlayerViewModel>(context);
+
     return Scaffold(
+      body: Column(
+        children: [
+          // Main content area
+          Expanded(child: screens[currentTabIndex]),
+          // Mini player
+          if (playerViewModel.currentSong != null)
+            MiniPlayer(),
+        ],
+      ),
       backgroundColor: Colors.black, 
       bottomNavigationBar: Container(
         width: 320, 
@@ -54,7 +63,6 @@ class _BottomNavState extends State<BottomNav> {
           ],
         ),
       ),
-      body: screens[currentTabIndex],
     );
   }
 

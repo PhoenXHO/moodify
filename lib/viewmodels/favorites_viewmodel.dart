@@ -66,4 +66,12 @@ class FavoritesViewModel extends ChangeNotifier {
     _favoriteSongs.removeWhere((song) => !song.isFavorite);
     notifyListeners();
   }
+
+  // Important for silent cleanup when navigating away from the favorites screen
+  void cleanupUnfavoritedSongsSilently() {
+    final songsToRemove = _favoriteSongs.where((song) => !song.isFavorite).toList();
+    if (songsToRemove.isNotEmpty) {
+      _favoriteSongs.removeWhere((song) => !song.isFavorite);
+    }
+  }
 }

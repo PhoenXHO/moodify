@@ -1,5 +1,8 @@
+import 'package:emotion_music_player/viewmodels/player_viewmodel.dart';
+import 'package:emotion_music_player/widgets/bottomnav.dart';
 import 'package:flutter/material.dart';
 import 'package:emotion_music_player/models/song.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/snackbar.dart';
 
@@ -42,6 +45,7 @@ class _SongWidgetState extends State<SongWidget> {
   Widget build(BuildContext context) {
     // Visual treatment for unfavorited songs
     final isUnfavorited = !widget.song.isFavorite;
+    final playerViewModel = Provider.of<PlayerViewModel>(context, listen: false);
 
     return Card(
       elevation: 2,
@@ -71,8 +75,8 @@ class _SongWidgetState extends State<SongWidget> {
                 ),
                 onPressed: _toggleFavorite,
               ),
-        onTap: () {
-          // Handle song selection/play (to be implemented later)
+        onTap: () async {
+          await playerViewModel.playSong(widget.song);
         },
       ),
     );
