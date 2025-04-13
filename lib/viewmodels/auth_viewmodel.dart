@@ -8,6 +8,7 @@ class AuthViewModel extends ChangeNotifier {
   String? _errorMessage;
   bool _isAuthenticated = false;
 
+  // Pour settings
   String? _displayName;
   String? _email;
 
@@ -19,7 +20,7 @@ class AuthViewModel extends ChangeNotifier {
 
   AuthViewModel() {
     checkAuthStatus();
-    fetchUserProfile();
+    // Tu peux appeler fetchUserProfile ici ou dans l’UI après login si besoin
   }
 
   void checkAuthStatus() {
@@ -28,6 +29,7 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ✅ Login uniquement
   Future<bool> login(String email, String password) async {
     _isLoading = true;
     _errorMessage = null;
@@ -36,12 +38,11 @@ class AuthViewModel extends ChangeNotifier {
     try {
       final result =
           await _authRepository.login(email: email, password: password);
-      if (result.user != null) {
+      if (result == "success") {
         _isAuthenticated = true;
-        fetchUserProfile();
         return true;
       } else {
-        _errorMessage = result.session?.accessToken ?? "Login failed";
+        _errorMessage = result;
         return false;
       }
     } catch (e) {
@@ -63,7 +64,6 @@ class AuthViewModel extends ChangeNotifier {
           username: username, email: email, password: password);
       if (result == "success") {
         _isAuthenticated = true;
-        fetchUserProfile();
         return true;
       } else {
         _errorMessage = result;

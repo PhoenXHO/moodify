@@ -18,8 +18,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     final viewModel = Provider.of<AuthViewModel>(context, listen: false);
-    _displayNameController.text = viewModel.displayName ?? '';
-    _emailController.text = viewModel.displayEmail ?? '';
+
+    // Appel à fetchUserProfile pour charger les données utilisateur
+    viewModel.fetchUserProfile();
+
+    // Ajouter un listener pour écouter les changements de données dans le ViewModel
+    viewModel.addListener(() {
+      if (viewModel.displayName != null && viewModel.displayEmail != null) {
+        _displayNameController.text = viewModel.displayName ?? '';
+        _emailController.text = viewModel.displayEmail ?? '';
+      }
+    });
   }
 
   @override
@@ -77,7 +86,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final viewModel = Provider.of<AuthViewModel>(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Settings")),
+      appBar: AppBar(
+        title: const Text('My Profile'),
+        centerTitle: true,
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
