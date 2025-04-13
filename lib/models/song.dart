@@ -7,7 +7,6 @@ class Song {
   final List<String> genres;
   final List<String> moods;
   final int favorites;
-  final String filePath;
   final DateTime createdAt;
   bool isFavorite;
 
@@ -18,7 +17,6 @@ class Song {
     required this.genres,
     required this.moods,
     required this.favorites,
-    required this.filePath,
     required this.createdAt,
     this.isFavorite = false,
   });
@@ -31,7 +29,6 @@ class Song {
       genres: List<String>.from(json['genres']),
       moods: List<String>.from(json['moods']),
       favorites: json['favorites'],
-      filePath: json['file_path'],
       createdAt: DateTime.parse(json['created_at']),
       isFavorite: json['is_favorite'] ?? false,
     );
@@ -45,7 +42,6 @@ class Song {
       'genres': jsonEncode(genres),
       'moods': jsonEncode(moods),
       'favorites': favorites,
-      'file_path': filePath,
       'created_at': createdAt.toIso8601String(),
       'is_favorite': isFavorite,
     };
