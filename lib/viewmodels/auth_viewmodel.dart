@@ -8,15 +8,20 @@ class AuthViewModel extends ChangeNotifier {
   String? _errorMessage;
   bool _isAuthenticated = false;
 
+  String? _displayName;
+  String? _email;
+
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _isAuthenticated;
+  String? get displayName => _displayName;
+  String? get displayEmail => _email;
 
   AuthViewModel() {
     checkAuthStatus();
   }
 
-  void checkAuthStatus() async {
+  void checkAuthStatus() {
     final user = _authRepository.getCurrentUser();
     _isAuthenticated = user != null;
     notifyListeners();
@@ -28,7 +33,8 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _authRepository.login(email: email, password: password);
+      final result =
+          await _authRepository.login(email: email, password: password);
       if (result == "success") {
         _isAuthenticated = true;
         return true;
@@ -51,7 +57,8 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _authRepository.signUp(username: username, email: email, password: password);
+      final result = await _authRepository.signUp(
+          username: username, email: email, password: password);
       if (result == "success") {
         _isAuthenticated = true;
         return true;
@@ -72,5 +79,70 @@ class AuthViewModel extends ChangeNotifier {
     await _authRepository.signOut();
     _isAuthenticated = false;
     notifyListeners();
+  }
+
+  Future<void> fetchUserProfile() async {
+    final user = await _authRepository.getCurrentUserProfile();
+    if (user != null) {
+      _displayName = user.userMetadata?['display_name'] ?? '';
+      _email = user.email;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateDisplayName(String newName) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final result = await _authRepository.updateDisplayName(newName);
+
+    _isLoading = false;
+    if (result == "success") {
+      _displayName = newName;
+      _errorMessage = null;
+      notifyListeners();
+      return true;
+    } else {
+      _errorMessage = result;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateEmail(String newemail) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final result = await _authRepository.updateEmail(newemail);
+
+    _isLoading = false;
+    if (result == "success") {
+      _email = newemail;
+      _errorMessage = null;
+      notifyListeners();
+      return true;
+    } else {
+      _errorMessage = result;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updatePassword(String password) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final result = await _authRepository.updatePassword(password);
+
+    _isLoading = false;
+    if (result == "success") {
+      _errorMessage = null;
+      notifyListeners();
+      return true;
+    } else {
+      _errorMessage = result;
+      notifyListeners();
+      return false;
+    }
   }
 }

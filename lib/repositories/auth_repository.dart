@@ -55,4 +55,29 @@ class AuthRepository {
   Future<void> signOut() async {
     await _supabase.auth.signOut();
   }
+
+  Future<User?> getCurrentUserProfile() async {
+    return _supabase.auth.currentUser;
+  }
+
+  Future<String> updateDisplayName(String newName) async {
+    final response = await _supabase.auth.updateUser(
+      UserAttributes(data: {'display_name': newName}),
+    );
+    return response.user != null ? "success" : "error";
+  }
+
+  Future<String> updateEmail(String email) async {
+    final response = await _supabase.auth.updateUser(
+      UserAttributes(email: email),
+    );
+    return response.user != null ? "success" : "error";
+  }
+
+  Future<String> updatePassword(String password) async {
+    final response = await _supabase.auth.updateUser(
+      UserAttributes(password: password),
+    );
+    return response.user != null ? "success" : "error";
+  }
 }

@@ -50,3 +50,19 @@ When checking the changes made, please confirm that you have read everything by 
 - 🟩 Create a `song_list_widget.dart` file in `widgets/` to display a list of songs
 - 🔷 Improve the UX of the favorites screen by keeping the unfavorited songs in the list until the user refreshes the page or navigates away from the screen
 - 🟩 Add a loading indicator while fetching the list of songs
+
+
+
+
+
+## code
+
+	
+## najat ##- (Updated authentication and settings management)
+
+🔷 Added fetchUserProfile, updatePassword, updateDisplayName, and updateEmail methods in AuthViewModel
+
+🔷 Added updatePassword, updateDisplayName, and updateEmail methods in AuthRepository
+
+🔷 Added settings view to manage user profile updates
+
