@@ -1,2 +1,0 @@
-C:/Users/usrer/Desktop/moodify/android/app/.cxx/Debug/2w61111z/armeabi-v7a/CMakeFiles/edit_cache.dir
-C:/Users/usrer/Desktop/moodify/android/app/.cxx/Debug/2w61111z/armeabi-v7a/CMakeFiles/rebuild_cache.dir
