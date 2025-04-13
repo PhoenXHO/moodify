@@ -1,3 +1,4 @@
+import 'package:emotion_music_player/viewmodels/PlaylistsViewModel.dart';
 import 'package:emotion_music_player/viewmodels/auth_viewmodel.dart';
 import 'package:emotion_music_player/viewmodels/favorites_viewmodel.dart';
 import 'package:emotion_music_player/views/auth/login.dart';
@@ -28,7 +29,8 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AuthViewModel()),
-        ChangeNotifierProvider(create: (context) => FavoritesViewModel())
+        ChangeNotifierProvider(create: (context) => FavoritesViewModel()),
+        ChangeNotifierProvider(create: (context) => PlaylistsViewModel())
       ],
       child: MaterialApp(
         title: 'Moodify',
