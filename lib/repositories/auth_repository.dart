@@ -55,15 +55,12 @@ class AuthRepository {
   Future<void> signOut() async {
     await _supabase.auth.signOut();
   }
+
   Future<User?> getCurrentUserProfile() async {
     return _supabase.auth.currentUser;
   }
 
-   
-
-
-
-    Future<String> updateDisplayName(String newName) async {
+  Future<String> updateDisplayName(String newName) async {
     final response = await _supabase.auth.updateUser(
       UserAttributes(data: {'display_name': newName}),
     );
@@ -84,8 +81,3 @@ class AuthRepository {
     return response.user != null ? "success" : "error";
   }
 }
-
-  
-
-
-

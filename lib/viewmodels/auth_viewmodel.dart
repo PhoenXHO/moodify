@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:emotion_music_player/repositories/auth_repository.dart';
+import 'package:flutter/material.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final AuthRepository _authRepository = AuthRepository();
@@ -8,7 +8,6 @@ class AuthViewModel extends ChangeNotifier {
   String? _errorMessage;
   bool _isAuthenticated = false;
 
-  // Pour settings
   String? _displayName;
   String? _email;
 
@@ -20,7 +19,6 @@ class AuthViewModel extends ChangeNotifier {
 
   AuthViewModel() {
     checkAuthStatus();
-    // Tu peux appeler fetchUserProfile ici ou dans l’UI après login si besoin
   }
 
   void checkAuthStatus() {
@@ -29,7 +27,6 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ✅ Login uniquement
   Future<bool> login(String email, String password) async {
     _isLoading = true;
     _errorMessage = null;
