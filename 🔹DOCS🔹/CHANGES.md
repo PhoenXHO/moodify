@@ -52,7 +52,7 @@ When checking the changes made, please confirm that you have read everything by 
 - 🟩 Add a loading indicator while fetching the list of songs
 
 ### Playlists
-**Atae**: 11-04-2025 - _(add your confirmation here)_
+**Atae**: 11-04-2025
 - 🟩 Add playlist functionality
     + Files added:
         - `models/playlist.dart`: Model for playlists
@@ -89,3 +89,19 @@ When checking the changes made, please confirm that you have read everything by 
     + UI improvements:
         - 🟩 Adjust checkbox padding and visual density
         - 🟩 Improve form validation and error handling
+
+
+
+
+
+## code
+
+	
+## najat ##- (Updated authentication and settings management)
+
+🔷 Added fetchUserProfile, updatePassword, updateDisplayName, and updateEmail methods in AuthViewModel
+
+🔷 Added updatePassword, updateDisplayName, and updateEmail methods in AuthRepository
+
+🔷 Added settings view to manage user profile updates
+
