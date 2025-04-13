@@ -12,7 +12,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        child: Text("CHAT"),
+        child: Center(child: Text("CHAT")),
       ),
     );
   }
