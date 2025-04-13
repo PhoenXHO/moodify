@@ -61,12 +61,12 @@ When checking the changes made, please confirm that you have read everything by 
         - `viewmodels/playlists_viewmodel.dart`: ViewModel for playlist operations
         - `repositories/playlist_repository.dart`: Repository for Supabase interactions
     + Features implemented:
-        - 🟩 Create new playlists
-        - 🟩 View list of playlists
-        - 🟩 Edit playlist details
-        - 🟩 Delete playlists
-        - 🔷 Add loading states and error handling
-        - 🟩 Implement pull-to-refresh functionality
+        - Create new playlists
+        - View list of playlists
+        - Edit playlist details
+        - Delete playlists
+        - Add loading states and error handling
+        - Implement pull-to-refresh functionality
     + Database changes:
         - 🟩 Create `playlists` table in Supabase
         - 🟩 Create `playlist_songs` junction table
@@ -81,14 +81,14 @@ When checking the changes made, please confirm that you have read everything by 
         - `repositories/auth_repository.dart`: Add credential persistence methods
         - `views/auth/login.dart`: Add remember me checkbox and persistence logic
     + Features implemented:
-        - 🟩 Add remember me checkbox to login screen
-        - 🟩 Implement credential persistence using SharedPreferences
-        - 🟩 Auto-fill credentials on app launch if previously saved
+        - Add remember me checkbox to login screen
+        - Implement credential persistence using SharedPreferences
+        - Auto-fill credentials on app launch if previously saved
     + Dependencies added:
-        - 🟩 Add shared_preferences package
+        - 🟩 Add `shared_preferences` package
     + UI improvements:
-        - 🟩 Adjust checkbox padding and visual density
-        - 🟩 Improve form validation and error handling
+        - 🔷 Adjust checkbox padding and visual density
+        - 🔷 Improve form validation and error handling
 
 
 
