@@ -36,7 +36,10 @@ dependencies:
   supabase_flutter: ^2.8.4
   flutter_dotenv: ^5.2.1
   provider: ^6.1.4
-  shared_preferences: ^2.4.9
+  just_audio: ^0.9.46
+  audio_session: ^0.1.25
+  rxdart: ^0.28.0
+  just_audio_background: ^0.0.1-beta.15
 
 
 dev_dependencies:

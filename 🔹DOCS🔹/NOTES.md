@@ -28,3 +28,6 @@ These features are not essential for the project but can enhance the user experi
 1. [ ] Add a "Forgot Password" link to the login screen
 1. [ ] Implement email verification after signup
 1. [ ] Add a "Password Strength" indicator on the signup screen
+
+### Playback
+1. [ ] For better UX, show the mini-player with a loading indicator before the song is loaded

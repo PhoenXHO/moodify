@@ -12,12 +12,17 @@ class FavoritesScreen extends StatefulWidget {
 }
 
 class _FavoritesScreenState extends State<FavoritesScreen> with AutomaticKeepAliveClientMixin {
+  late FavoritesViewModel _favoritesViewModel;
+
   @override
   bool get wantKeepAlive => true; // Keep state when switching tabs
 
   @override
   void initState() {
     super.initState();
+    // Store a reference to the FavoritesViewModel
+    _favoritesViewModel = Provider.of<FavoritesViewModel>(context, listen: false);
+
     // Fetch data when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<FavoritesViewModel>(context, listen: false).fetchFavorites();
@@ -25,9 +30,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> with AutomaticKeepAli
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Update the reference to the FavoritesViewModel
+    _favoritesViewModel = Provider.of<FavoritesViewModel>(context, listen: false);
+  }
+
+  @override
   void dispose() {
     // Clean up unfavorited songs when leaving the screen
-    Provider.of<FavoritesViewModel>(context, listen: false).cleanupUnfavoritedSongs();
+    _favoritesViewModel.cleanupUnfavoritedSongsSilently();
     super.dispose();
   }
 

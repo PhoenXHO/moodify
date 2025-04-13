@@ -1,17 +1,27 @@
 import 'package:emotion_music_player/viewmodels/PlaylistsViewModel.dart';
 import 'package:emotion_music_player/viewmodels/auth_viewmodel.dart';
 import 'package:emotion_music_player/viewmodels/favorites_viewmodel.dart';
+import 'package:emotion_music_player/viewmodels/player_viewmodel.dart';
 import 'package:emotion_music_player/views/auth/login.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize JustAudio background playback
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.example.emotion_music_player.channel.audio',
+    androidNotificationChannelName: 'Audio playback',
+    androidNotificationOngoing: true,
+  );
+
   // Load the .env file
   await dotenv.load(fileName: ".env");
+
   // Initialize Supabase
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
@@ -30,6 +40,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (context) => AuthViewModel()),
         ChangeNotifierProvider(create: (context) => FavoritesViewModel()),
+        ChangeNotifierProvider(create: (context) => PlayerViewModel()),
         ChangeNotifierProvider(create: (context) => PlaylistsViewModel())
       ],
       child: MaterialApp(
