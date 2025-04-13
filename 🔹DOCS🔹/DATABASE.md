@@ -8,7 +8,7 @@ This table is in the `auth` schema and contains information about the users of t
 The rest of the tables are in the `public` schema and are used to store application-specific data.
 
 ## `songs` Table
-This table  contains information about the songs in the application. It stores details such as the song title, artist, genres, moods, and the file path of the song in the storage bucket.
+This table  contains information about the songs in the application. It stores details such as the song title, artist, genres, and the moods corresponding to the song in the storage bucket.
 | Field Name     | Data Type         | Description                                        | Default Value       | Nullable |
 |----------------|-------------------|----------------------------------------------------|---------------------|----------|
 | `id`           | UUID              | Unique identifier for the song (primary key)       | `gen_random_uuid()` | No       |
@@ -17,7 +17,6 @@ This table  contains information about the songs in the application. It stores d
 | `genres`       | JSONB             | Genres associated with the song (array of strings) | []                  | No       |
 | `moods`        | JSONB             | Moods associated with the song (array of strings)  | []                  | No       |
 | `favorites`    | INT8              | Number of favorites for the song                   | 0                   | No       |
-| `file_path`    | Text              | File path of the song in the storage bucket        | ""                  | No       |
 | `created_at`   | Timestamp         | Timestamp when the song was created                | `now()`             | No       |
 
 ## `favorites` Table
