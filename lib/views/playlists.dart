@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:emotion_music_player/viewmodels/PlaylistsViewModel.dart';
+import 'package:emotion_music_player/viewmodels/playlists_viewmodel.dart';
 import 'package:emotion_music_player/models/playlist.dart';
 import 'package:emotion_music_player/widgets/snackbar.dart';
-import 'package:emotion_music_player/views/playlist_detail.dart';
+import 'package:emotion_music_player/views/playlist_contents.dart';
 
 class PlaylistsScreen extends StatefulWidget {
   const PlaylistsScreen({super.key});

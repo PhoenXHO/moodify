@@ -31,3 +31,9 @@ These features are not essential for the project but can enhance the user experi
 
 ### Playback
 1. [ ] For better UX, show the mini-player with a loading indicator before the song is loaded
+
+### AI Assistant
+1. [ ] Provide current date and time to the AI assistant for better context as well as old messages with their timestamps
+1. [ ] Add support for emojis in both the user and AI messages
+1. [ ] Add support for markdown formatting in both the user and AI messages
+1. [ ] Improve UX in the chat screen

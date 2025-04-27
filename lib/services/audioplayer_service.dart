@@ -7,6 +7,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/song.dart';
 
 class AudioPlayerService {
+  // This class is responsible for managing audio playback using the Just Audio package
+
   // Singleton pattern
   static final AudioPlayerService _instance = AudioPlayerService._internal();
   factory AudioPlayerService() => _instance;

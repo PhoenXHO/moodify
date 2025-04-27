@@ -7,70 +7,80 @@ _Note: Old changes will be grayed out to indicate that they are no longer releva
 # Changes Log
 
 ## Dependency Updates
-<span style="color:gray">**Oussama**: 29-03-2025
-- <span style="color:gray">🟩 Add Supabase dependencies
-- <span style="color:gray">🟥 Remove Firebase dependencies
-- <span style="color:gray">🟩 Add `flutter_dotenv` for environment variable management
-- <span style="color:gray">🔷 Change AGP version to `8.4.2` in `android/build.gradle`, `android/gradle.properties`, and `android/gradle/wrapper/gradle-wrapper.properties` due to compatibility issues with the latest Gradle version
-- <span style="color:gray">🟩 Add `provider` dependency for state management and MVVM architecture
+<span style="color:gray">**Oussama**: 09-04-2025
+- <span style="color:gray">🟩 Add `just_audio` dependency for audio playback
+- <span style="color:gray">🟩 Add `audio_session` dependency for audio session management
+- <span style="color:gray">🟩 Add `just_audio_background` dependency for background audio playback
+- <span style="color:gray">🟩 Add `rxdart` dependency for reactive programming with streams
 
-**Oussama**: 09-04-2025
-- 🟩 Add `just_audio` dependency for audio playback
-- 🟩 Add `audio_session` dependency for audio session management
-- 🟩 Add `just_audio_background` dependency for background audio playback
-- 🟩 Add `rxdart` dependency for reactive programming with streams
+**Oussama**: 20-04-2025
+- 🟩 Add `http` dependency for making HTTP requests (used by AI service)
+- 🟩 Add `yaml` dependency for parsing YAML configuration files (used by AI service)
 
 ## Folder Structure and Naming Conventions
 ### Folders and Files
-<span style="color:gray">**Oussama**: 30-03-2025
-- <span style="color:gray">🔄 Rename `Widget/` directory to `widgets/`
-- <span style="color:gray">🔄 Rename `Playlist/` directory to `playlists/`
-- <span style="color:gray">🔄 Rename `pages/` directory to `views/`
-- <span style="color:gray">🟥 Remove `Services/` directory
-- <span style="color:gray">🔄 Rename `authentication.dart` to `auth_service.dart`
-- <span style="color:gray">↪️ Move `views/login.dart` and `views/signup.dart` to `views/auth/`
-- <span style="color:gray">🟩 Add `.env` file to the root directory for environment variables
-- <span style="color:gray">🟩 Implement an MVVM architecture for the project
-	+ 🟩 Add `viewmodels/` directory for view models, and add view models for authentication and favorites
-	+ 🟩 Add `models/` directory for data models, and add a song model
-	+ 🔷 Initialize providers in `main.dart` for view models
+<span style="color:gray">**Oussama**: 09-04-2025
+- <span style="color:gray">🟩 Add `services/` directory for service classes
 
-**Oussama**: 09-04-2025
-- 🟩 Add `services/` directory for service classes
-		
+**Oussama**: 19-04-2025
+- 🔄 Rename `PlaylistSong.dart` to `playlist_song.dart`
+- 🔄 Rename `Credentials.dart` to `credentials.dart`
+- 🔄 Rename `playlist_detail.dart` to `playlist_contents.dart`
+- 🔄 Rename `PlaylistRepository.dart` to `playlist_repository.dart`
+
+**Oussama**: 20-04-2025
+- 🟩 Add new files and directories:
+  - `assets/ai_config.yaml` - Configuration for AI chat assistant
+  - `lib/models/chat_message.dart` - Data model for chat messages
+  - `lib/models/credentials.dart` - Model for storing login credentials
+  - `lib/models/playlist_song.dart` - Model for playlist-song relationships
+  - `lib/repositories/chat_repository.dart` - Database interactions for chat
+  - `lib/repositories/playlist_repository.dart` - Repository for playlist management
+  - `lib/services/ai_service.dart` - Integration with AI model API
+  - `lib/services/chat_service.dart` - Business logic for chat functionality
+  - `lib/utils/yaml_util.dart` - Utilities for YAML parsing
+  - `lib/viewmodels/chat_viewmodel.dart` - View model for chat screen
+  - `lib/viewmodels/playlists_viewmodel.dart` - View model for playlists
+  - `lib/widgets/message_bubble.dart` - UI component for chat messages
+  - `lib/views/playlist_contents.dart` - Screen for playlist details
+- 🔄 Fix imports in multiple files to use correct naming conventions
+
+**Oussama**: 27-04-2025
+- 🔄 Fix imports in `main.dart` to use correct case for `playlists_viewmodel.dart`
+- 🔄 Update implementations for `ChatViewModel` and `ChatScreen` for better robustness
+- 🟩 Create error handling mechanisms in AI chat feature
+
 ### Code
-**Oussama**: 29-03-2025
+<span style="color:gray">**Oussama**: 29-03-2025
 - <span style="color:gray">🔄 Rename `signupUser()` to `signUp()` in `auth_service.dart`
 - <span style="color:gray">🔄 Rename `loginUser()` to `login()` in `auth_service.dart`
 
 ## Code Changes
 ### Authentication
-**Oussama**: 29-03-2025
+<span style="color:gray">**Oussama**: 29-03-2025
 - <span style="color:gray">🔷 Update authentication logic to use Supabase instead of Firebase
 	+ Files affected:
 		- `auth_service.dart`: `signUp()` and `login()` methods
 		- `main.dart`: Initialize Supabase client
 
 ### Favorites
-**Oussama**: 30-03-2025
-- <span style="color:gray">🟩 Add a view model for favorites in `viewmodels/favorites_viewmodel.dart` with the logic to add and remove songs from favorites
-- <span style="color:gray">🟩 Add a model for songs in `models/song.dart`
-- <span style="color:gray">🟩 Create a `song_widget.dart` file in `widgets/` to display song information
-- <span style="color:gray">🟩 Create a `song_list_widget.dart` file in `widgets/` to display a list of songs
-- <span style="color:gray">🔷 Improve the UX of the favorites screen by keeping the unfavorited songs in the list until the user refreshes the page or navigates away from the screen
-- <span style="color:gray">🟩 Add a loading indicator while fetching the list of songs
+**Oussama**: 19-04-2025
+- 🔷 Updated the Song model to use `favorite_count` instead of `favorites`
+- 🔷 Enhanced `SongRepository` to update favorite counts when toggling favorites
+  + Added proper increment/decrement logic of favorite counts
+  + Added safeguard to prevent negative favorite counts
 
 ### Navigation
-**Oussama**: 12-04-2025
-- 🔷 Fixed an error when navigating away from the favorites screen.
+<span style="color:gray">**Oussama**: 12-04-2025
+- <span style="color:gray">🔷 Fixed an error when navigating away from the favorites screen.
 	+ Files affected:
 		- `widgets/bottomnav.dart`: Updated to handle navigation properly
 		- `viewmodels/favorites_viewmodel.dart`: Added a method to clear the favorites list silently without notifying listeners
 		- `views/favorites.dart`: Updated to use the new method in the view model
 
 ### Audio Playback
-**Oussama**: 11-04-2025
-- 🟩 Implement audio playback functionality with a mini-player
+<span style="color:gray">**Oussama**: 11-04-2025
+- <span style="color:gray">🟩 Implement audio playback functionality with a mini-player
   + Files added:
     - `services/audio_service.dart`: Service for managing audio playback
     - `widgets/mini_player.dart`: Mini player that appears at the bottom of the screen
@@ -83,8 +93,8 @@ _Note: Old changes will be grayed out to indicate that they are no longer releva
 	- `MainActivity.kt`: Updated to handle background audio playback and notifications
 
 ### Playlists
-**Atae**: 11-04-2025
-- 🟩 Add playlist functionality
+<span style="color:gray">**Atae**: 11-04-2025
+- <span style="color:gray">🟩 Add playlist functionality
     + Files added:
         - `models/playlist.dart`: Model for playlists
         - `views/playlists.dart`: Main playlists screen
@@ -103,9 +113,22 @@ _Note: Old changes will be grayed out to indicate that they are no longer releva
         - 🟩 Create `playlist_songs` junction table
         - 🟩 Add RLS policies for playlist security
 
+**Oussama**: 20-04-2025
+- 🔷 Implement proper MVVM architecture for playlist management:
+  + Created `PlaylistRepository` for database operations
+  + Created `PlaylistsViewModel` to manage state and business logic
+  + Fixed import paths for renamed files
+  + Added proper error handling and loading states
+  + Implemented song reordering in playlists
+
+**Oussama**: 27-04-2025
+- 🔷 Fixed playlist path imports in remaining files
+- 🔷 Updated `PlaylistDetailScreen` to work with the new architecture
+- 🔷 Enhanced error handling in song deletion from playlists
+
 ### Authentication
-**Atae**: 12-04-2025
-- 🟩 Add "Remember Me" functionality
+<span style="color:gray">**Atae**: 12-04-2025
+- <span style="color:gray">🟩 Add "Remember Me" functionality
     + Files added:
         - `models/credentials.dart`: Model for storing login credentials
     + Files modified:
@@ -121,18 +144,36 @@ _Note: Old changes will be grayed out to indicate that they are no longer releva
         - 🔷 Adjust checkbox padding and visual density
         - 🔷 Improve form validation and error handling
 
+### Chat Feature
+**Oussama**: 20-04-2025
+- 🟩 Implement AI assistant chat feature:
+  + Create chat message UI with sender-specific styling
+  + Add `ChatViewModel` for managing chat state and interaction logic
+  + Implement `ChatService` for chat business logic
+  + Add `ChatRepository` for Supabase database interactions
+  + Create `ChatMessage` model for structured message data
+  + Add `AiService` to interface with OpenRouter API (using Gemma model)
+  + Add configuration file (`assets/ai_config.yaml`) for AI personality and behavior
+  + Register `ChatViewModel` provider in `main.dart`
+  + Add `OPENROUTER_API_KEY` environment variable in `.env`
+  + Implement chat history persistence and retrieval
+  + Add option to clear chat history
 
+**Oussama**: 27-04-2025
+- 🔷 Enhanced chat functionality:
+  + Improved error handling for AI service connectivity issues
+  + Added auto-scroll to bottom when new messages are added
+  + Fixed issue with message rendering when AI service is slow
+  + Optimized chat history retrieval to reduce bandwidth usage
+  + Added loading indicator during AI response generation
+  + Implemented graceful fallbacks when AI service fails
 
+### Documentation
+**Oussama**: 20-04-2025
+- 🔷 Update `DATABASE.md` to include the `chats` table schema with proper foreign key constraints
+- 🔷 Add AI Assistant section to `NOTES.md` with feature ideas and improvements
 
-
-## code
-
-	
-## najat ##- (Updated authentication and settings management)
-
-🔷 Added fetchUserProfile, updatePassword, updateDisplayName, and updateEmail methods in AuthViewModel
-
-🔷 Added updatePassword, updateDisplayName, and updateEmail methods in AuthRepository
-
-🔷 Added settings view to manage user profile updates
-
+**Oussama**: 27-04-2025
+- 🔷 Updated `NOTES.md` with additional AI assistant feature ideas
+- 🔷 Fixed formatting in `DATABASE.md` to improve readability
+- 🟩 Added environment variable documentation in a new `ENVIRONMENT.md` file

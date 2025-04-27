@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:emotion_music_player/models/playlist.dart';
-import 'package:emotion_music_player/viewmodels/PlaylistsViewModel.dart';
+import 'package:emotion_music_player/viewmodels/playlists_viewmodel.dart';
 import 'package:emotion_music_player/widgets/song_list_widget.dart';
 import 'package:emotion_music_player/widgets/snackbar.dart';
 

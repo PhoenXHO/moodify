@@ -26,19 +26,37 @@ class PlaylistRepository {
 }
 
   // Create a new playlist
-  Future<void> createPlaylist({
+  Future<String> createPlaylist({
     required String userId,
     required String title,
     String? description,
+    List<String>? songIds,
   }) async {
     try {
-      await _supabase.from('playlists').insert({
+      // Insert the playlist and get the ID
+      final response = await _supabase.from('playlists').insert({
         'user_id': userId,
         'title': title,
         'description': description,
         'is_public': false,
-        'song_count': 0,
-      });
+        'song_count': songIds?.length ?? 0,
+      }).select('id').single();
+
+      final playlistId = response['id'];
+      
+      // Add songs if provided
+      if (songIds != null && songIds.isNotEmpty) {
+        // Create playlist_songs entries for each song
+        final playlistSongEntries = songIds.asMap().entries.map((entry) => {
+          'playlist_id': playlistId,
+          'song_id': entry.value,
+          'position': entry.key, // Use map index as position
+        }).toList();
+        
+        await _supabase.from('playlist_songs').insert(playlistSongEntries);
+      }
+      
+      return playlistId;
     } catch (e) {
       throw 'Failed to create playlist: $e';
     }

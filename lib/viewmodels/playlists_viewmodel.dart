@@ -72,6 +72,37 @@ Future<bool> createPlaylist(String title, String? description) async {
     }
 }
 
+  // Create playlist with songs (for AI-generated playlists)
+  Future<String?> createPlaylistWithSongs({
+    required String title, 
+    String? description,
+    required List<String> songIds,
+  }) async {
+    try {
+      final user = _authRepository.getCurrentUser();
+      if (user == null) {
+        _errorMessage = 'You need to login to create playlists';
+        notifyListeners();
+        return null;
+      }
+
+      final playlistId = await _playlistRepository.createPlaylist(
+        userId: user.id,
+        title: title,
+        description: description,
+        songIds: songIds,
+      );
+      
+      print('Playlist created with ID: $playlistId and ${songIds.length} songs');
+      await fetchPlaylists(); // Refresh the playlists list
+      return playlistId;
+    } catch (e) {
+      print('Error in createPlaylistWithSongs: $e');
+      _errorMessage = 'Error creating playlist: $e';
+      notifyListeners();
+      return null;
+    }
+  }
 
   // Load songs for a specific playlist
   Future<void> loadPlaylistSongs(String playlistId) async {
@@ -190,4 +221,4 @@ Future<bool> createPlaylist(String title, String? description) async {
       notifyListeners();
     }
   }
-}   
+}

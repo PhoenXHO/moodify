@@ -6,7 +6,7 @@ class Song {
   final String artist;
   final List<String> genres;
   final List<String> moods;
-  final int favorites;
+  final int favoriteCount;
   final DateTime createdAt;
   bool isFavorite;
 
@@ -16,7 +16,7 @@ class Song {
     required this.artist,
     required this.genres,
     required this.moods,
-    required this.favorites,
+    required this.favoriteCount,
     required this.createdAt,
     this.isFavorite = false,
   });
@@ -28,7 +28,7 @@ class Song {
       artist: json['artist'],
       genres: List<String>.from(json['genres']),
       moods: List<String>.from(json['moods']),
-      favorites: json['favorites'],
+      favoriteCount: json['favorite_count'],
       createdAt: DateTime.parse(json['created_at']),
       isFavorite: json['is_favorite'] ?? false,
     );
@@ -41,7 +41,7 @@ class Song {
       'artist': artist,
       'genres': jsonEncode(genres),
       'moods': jsonEncode(moods),
-      'favorites': favorites,
+      'favorite_count': favoriteCount,
       'created_at': createdAt.toIso8601String(),
       'is_favorite': isFavorite,
     };
