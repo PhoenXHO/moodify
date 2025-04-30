@@ -2,8 +2,6 @@ import 'package:emotion_music_player/views/auth/login.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../repositories/auth_repository.dart';
-
 class AuthService {
   // This class is responsible for handling authentication-related operations
 

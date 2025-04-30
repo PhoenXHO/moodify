@@ -1,13 +1,20 @@
+import 'package:emotion_music_player/repositories/song_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:emotion_music_player/models/playlist.dart';
 import 'package:emotion_music_player/models/song.dart';
 import 'package:emotion_music_player/repositories/playlist_repository.dart';
 import 'package:emotion_music_player/repositories/auth_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PlaylistsViewModel extends ChangeNotifier {
   final PlaylistRepository _playlistRepository = PlaylistRepository();
   final AuthRepository _authRepository = AuthRepository();
+  final SongRepository _songRepository = SongRepository();
 
+  SupabaseClient get supabase => Supabase.instance.client;
+  // Add a getter or field for songs
+  List<Song> _songs = []; // Replace with actual initialization logic
+  List<Song> get songs => _songs;
   List<Playlist> _playlists = [];
   bool _isLoading = false;
   String? _errorMessage;
@@ -32,11 +39,13 @@ class PlaylistsViewModel extends ChangeNotifier {
         return;
       }
 
-      final fetchedPlaylists = await _playlistRepository.getUserPlaylists(user.id);
+      final fetchedPlaylists =
+          await _playlistRepository.getUserPlaylists(user.id);
       print('Fetched playlists: ${fetchedPlaylists.length}'); // Debug playlists
-      
+
       _playlists = fetchedPlaylists;
-      print('Updated state playlists: ${_playlists.length}'); // Debug state update
+      print(
+          'Updated state playlists: ${_playlists.length}'); // Debug state update
     } catch (e) {
       print('Error in fetchPlaylists: $e'); // Debug error
       _errorMessage = 'Error fetching playlists: $e';
@@ -44,37 +53,39 @@ class PlaylistsViewModel extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
-}
+  }
 
-Future<bool> createPlaylist(String title, String? description) async {
+  Future<Playlist> createPlaylist(String name, String description) async {
     try {
-      final user = _authRepository.getCurrentUser();
-      if (user == null) {
-        _errorMessage = 'You need to login to create playlists';
-        notifyListeners();
-        return false;
-      }
+      // Create a new playlist
+      final response = await supabase
+          .from('playlists')
+          .insert({
+            'title': name,
+            'description': description,
+            'user_id': supabase.auth.currentUser!.id,
+          })
+          .select()
+          .single();
 
-      await _playlistRepository.createPlaylist(
-        userId: user.id,
-        title: title,
-        description: description,
-      );
+      // Create a Playlist object
+      final playlist = Playlist.fromJson(response);
 
-      print('Playlist created, fetching updated list...'); // Debug create
-      await fetchPlaylists(); // Explicitly fetch updated list
-      return true;
+      // Add to local list
+      _playlists.add(playlist);
+      notifyListeners();
+
+      return playlist;
     } catch (e) {
-      print('Error in createPlaylist: $e'); // Debug error
       _errorMessage = 'Error creating playlist: $e';
       notifyListeners();
-      return false;
+      throw e;
     }
-}
+  }
 
   // Create playlist with songs (for AI-generated playlists)
   Future<String?> createPlaylistWithSongs({
-    required String title, 
+    required String title,
     String? description,
     required List<String> songIds,
   }) async {
@@ -92,8 +103,9 @@ Future<bool> createPlaylist(String title, String? description) async {
         description: description,
         songIds: songIds,
       );
-      
-      print('Playlist created with ID: $playlistId and ${songIds.length} songs');
+
+      print(
+          'Playlist created with ID: $playlistId and ${songIds.length} songs');
       await fetchPlaylists(); // Refresh the playlists list
       return playlistId;
     } catch (e) {
@@ -111,10 +123,23 @@ Future<bool> createPlaylist(String title, String? description) async {
     notifyListeners();
 
     try {
-      final songs = await _playlistRepository.getPlaylistSongs(playlistId);
+      final user = _authRepository.getCurrentUser();
+      final playlistSongs =
+          await _playlistRepository.getPlaylistSongs(playlistId);
+
+      if (user != null) {
+        final favorites = await _songRepository.getFavorites(user.id);
+        final favoriteIds = favorites.map((song) => song.id).toSet();
+
+        for (var song in playlistSongs) {
+          song.isFavorite = favoriteIds.contains(song.id);
+        }
+      }
+
+      // Update the playlist with the loaded songs
       final index = _playlists.indexWhere((p) => p.id == playlistId);
       if (index != -1) {
-        _playlists[index] = _playlists[index].copyWith(songs: songs);
+        _playlists[index] = _playlists[index].copyWith(songs: playlistSongs);
       }
     } catch (e) {
       _errorMessage = 'Error loading playlist songs: $e';
@@ -130,40 +155,16 @@ Future<bool> createPlaylist(String title, String? description) async {
     return playlist.songs;
   }
 
-  // Create new playlist
-  // Future<bool> createPlaylist(String title, String? description) async {
-  //   try {
-  //     final user = _authRepository.getCurrentUser();
-  //     if (user == null) {
-  //       _errorMessage = 'You need to login to create playlists';
-  //       notifyListeners();
-  //       return false;
-  //     }
-
-  //     await _playlistRepository.createPlaylist(
-  //       userId: user.id,
-  //       title: title,
-  //       description: description,
-  //     );
-
-  //     await fetchPlaylists();
-  //     return true;
-  //   } catch (e) {
-  //     _errorMessage = 'Error creating playlist: $e';
-  //     notifyListeners();
-  //     return false;
-  //   }
-  // }
-
   // Update playlist details
-  Future<bool> updatePlaylist(String playlistId, String title, String? description) async {
+  Future<bool> updatePlaylist(
+      String playlistId, String title, String? description) async {
     try {
       await _playlistRepository.updatePlaylist(
         playlistId: playlistId,
         title: title,
         description: description,
       );
-      
+
       await fetchPlaylists();
       return true;
     } catch (e) {
@@ -201,24 +202,152 @@ Future<bool> createPlaylist(String title, String? description) async {
   }
 
   // Reorder songs in playlist
-  Future<void> reorderSongs(String playlistId, int oldIndex, int newIndex) async {
+  Future<void> reorderSongs(
+      String playlistId, int oldIndex, int newIndex) async {
     try {
       final playlist = _playlists.firstWhere((p) => p.id == playlistId);
       final songs = playlist.songs;
-      
+
+      // Store the original order for rollback if needed
+      final originalOrder = List<Song>.from(songs);
+
+      // Update the local order first
       final song = songs.removeAt(oldIndex);
       songs.insert(newIndex, song);
 
-      final updates = songs.asMap().entries.map((entry) => {
-        'song_id': entry.value.id,
-        'position': entry.key,
-      }).toList();
+      // Create the updates for the database
+      final updates = songs
+          .asMap()
+          .entries
+          .map((entry) => {
+                'song_id': entry.value.id,
+                'position': entry.key,
+              })
+          .toList();
 
-      await _playlistRepository.updateSongPositions(playlistId, updates);
+      // Optimistically update the UI
       notifyListeners();
+
+      try {
+        // Then update the database
+        await _playlistRepository.updateSongPositions(playlistId, updates);
+      } catch (e) {
+        // If database update fails, revert to original order
+        final index = _playlists.indexWhere((p) => p.id == playlistId);
+        if (index != -1) {
+          _playlists[index] = _playlists[index].copyWith(songs: originalOrder);
+        }
+        throw e; // Re-throw to be caught by outer try-catch
+      }
     } catch (e) {
       _errorMessage = 'Error reordering songs: $e';
       notifyListeners();
+    }
+  }
+
+  // Add a single song to playlist
+  Future<bool> addSongToPlaylist(String playlistId, String songId) async {
+    try {
+      await supabase.from('playlist_songs').insert({
+        'playlist_id': playlistId,
+        'song_id': songId,
+        'position': getPlaylistSongs(playlistId).length, // Add at the end
+      });
+
+      // Refresh playlist songs
+      await loadPlaylistSongs(playlistId);
+      return true;
+    } catch (e) {
+      _errorMessage = 'Error adding song to playlist: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<void> addSongsToPlaylist(
+      String playlistId, List<String> songIds) async {
+    try {
+      // Get current position
+      final currentPosition = getPlaylistSongs(playlistId).length;
+
+      // Create entries for each song
+      final entries = songIds.asMap().entries.map((entry) {
+        return {
+          'playlist_id': playlistId,
+          'song_id': entry.value,
+          'position': currentPosition + entry.key,
+        };
+      }).toList();
+
+      // Add all songs at once
+      await supabase.from('playlist_songs').insert(entries);
+
+      // Refresh playlist songs
+      await loadPlaylistSongs(playlistId);
+    } catch (e) {
+      _errorMessage = 'Error adding songs to playlist: $e';
+      notifyListeners();
+      throw e;
+    }
+  }
+
+  void clearError() {
+    // Logic to clear the error message
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  void _setError(String error) {
+    _errorMessage = error;
+    notifyListeners();
+  }
+
+  void _setLoading(bool loading) {
+    _isLoading = loading;
+    notifyListeners();
+  }
+
+  // load all songs
+  Future<List<Song>> getAllSongs(String playlistId) async {
+    try {
+      _isLoading = true;
+
+      final user = _authRepository.getCurrentUser();
+      if (user == null) {
+        _errorMessage = 'You need to login to view songs';
+        _isLoading = false;
+        notifyListeners();
+        return [];
+      }
+
+      // Get all songs from the repository
+      final allSongs = await _songRepository.getAllSongs();
+
+      // Get songs already in the playlist
+      final playlistSongs =
+          await _playlistRepository.getPlaylistSongs(playlistId);
+      final playlistSongIds = playlistSongs.map((song) => song.id).toSet();
+
+      // Filter out songs already in the playlist
+      _songs =
+          allSongs.where((song) => !playlistSongIds.contains(song.id)).toList();
+
+      // Apply favorite status if user is logged in
+      final favorites = await _songRepository.getFavorites(user.id);
+      final favoriteIds = favorites.map((song) => song.id).toSet();
+
+      for (var song in _songs) {
+        song.isFavorite = favoriteIds.contains(song.id);
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return _songs;
+    } catch (e) {
+      _errorMessage = 'Error fetching all songs: $e';
+      _isLoading = false;
+      notifyListeners();
+      return [];
     }
   }
 }

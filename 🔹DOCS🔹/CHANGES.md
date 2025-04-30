@@ -126,6 +126,16 @@ _Note: Old changes will be grayed out to indicate that they are no longer releva
 - 🔷 Updated `PlaylistDetailScreen` to work with the new architecture
 - 🔷 Enhanced error handling in song deletion from playlists
 
+**Atae**: 29-04-2025
+- 🟩 Enhanced playlist functionality:
+  + Created `SongSelectionScreen` for adding songs to playlists
+  + Implemented filtering logic to only show songs not already in playlist (Add songs functionality)
+  + Added support for playlist song management with improved error handling
+  + Extended `PlaylistsViewModel` with methods for song filtering and playlist operations
+  + Implemented confirmation dialogs for playlist operations
+  + Added immediate UI updates after song removal from playlists
+  + Improved error handling for song addition and removal in playlists
+
 ### Authentication
 <span style="color:gray">**Atae**: 12-04-2025
 - <span style="color:gray">🟩 Add "Remember Me" functionality
