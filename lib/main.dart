@@ -4,6 +4,7 @@ import 'package:emotion_music_player/viewmodels/chat_viewmodel.dart';
 import 'package:emotion_music_player/viewmodels/favorites_viewmodel.dart';
 import 'package:emotion_music_player/viewmodels/player_viewmodel.dart';
 import 'package:emotion_music_player/views/auth/login.dart';
+import 'package:emotion_music_player/views/screens/song_selection_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -15,7 +16,8 @@ void main() async {
 
   // Initialize JustAudio background playback
   await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.example.emotion_music_player.channel.audio',
+    androidNotificationChannelId:
+        'com.example.emotion_music_player.channel.audio',
     androidNotificationChannelName: 'Audio playback',
     androidNotificationOngoing: true,
   );
@@ -46,13 +48,12 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => ChatViewModel()),
       ],
       child: MaterialApp(
-        title: 'Moodify',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
-        ),
-        home: LoginScreen()
-      ),
+          title: 'Moodify',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+            useMaterial3: true,
+          ),
+          home: LoginScreen()),
     );
   }
 }

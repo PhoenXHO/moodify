@@ -1,4 +1,5 @@
 import 'package:emotion_music_player/viewmodels/player_viewmodel.dart';
+import 'package:emotion_music_player/viewmodels/playlists_viewmodel.dart';
 import 'package:emotion_music_player/widgets/bottomnav.dart';
 import 'package:flutter/material.dart';
 import 'package:emotion_music_player/models/song.dart';
@@ -8,12 +9,16 @@ import '../widgets/snackbar.dart';
 
 class SongWidget extends StatefulWidget {
   final Song song;
-  final Function onFavoriteToggle;
+  final VoidCallback onFavoriteToggle; // Change to VoidCallback (no parameters)
+  final bool inPlaylist;
+  final Function? onRemove;
 
   const SongWidget({
     super.key,
     required this.song,
     required this.onFavoriteToggle,
+    this.inPlaylist = false,
+    this.onRemove,
   });
 
   @override
@@ -30,22 +35,25 @@ class _SongWidgetState extends State<SongWidget> {
     });
 
     try {
-      // Call the callback function to update the parent widget
-      widget.onFavoriteToggle(widget.song.id);
+      widget.onFavoriteToggle(); // Call without parameters
     } catch (e) {
-      showSnackBar(context, 'Error toggling favorite: $e');
+      if (mounted) {
+        showSnackBar(context, 'Error toggling favorite: $e');
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Visual treatment for unfavorited songs
     final isUnfavorited = !widget.song.isFavorite;
-    final playerViewModel = Provider.of<PlayerViewModel>(context, listen: false);
+    final playerViewModel =
+        Provider.of<PlayerViewModel>(context, listen: false);
 
     return Card(
       elevation: 2,
@@ -60,24 +68,117 @@ class _SongWidgetState extends State<SongWidget> {
           ),
         ),
         subtitle: Text(widget.song.artist),
-        trailing: _isLoading
-            ? const SizedBox(
-                width: 24, 
-                height: 24, 
-                child: CircularProgressIndicator(strokeWidth: 2)
-              )
-            : IconButton(
-                icon: Icon(
-                  widget.song.isFavorite 
-                      ? Icons.favorite 
-                      : Icons.favorite_border,
-                  color: widget.song.isFavorite ? Colors.red : null,
-                ),
-                onPressed: _toggleFavorite,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Always show the favorite button
+            IconButton(
+              icon: Icon(
+                widget.song.isFavorite ? Icons.favorite : Icons.favorite_border,
+                color: widget.song.isFavorite ? Colors.red : null,
               ),
+              onPressed: _toggleFavorite,
+            ),
+            // Show remove button only if in playlist AND onRemove is provided
+            if (widget.inPlaylist && widget.onRemove != null)
+              IconButton(
+                icon: const Icon(Icons.remove_circle_outline),
+                onPressed: () {
+                  widget.onRemove?.call(); // Ensure the callback is invoked
+                },
+              ),
+
+            // More options menu for adding to playlist
+            if (!widget.inPlaylist)
+              PopupMenuButton(
+                icon: const Icon(Icons.more_vert),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'add_to_playlist',
+                    child: const Text('Add to playlist'),
+                  ),
+                ],
+                onSelected: (value) {
+                  if (value == 'add_to_playlist') {
+                    _showCreatePlaylistDialog(context);
+                    // here we must add the functionality to add to existing playlists
+                  }
+                },
+              ),
+          ],
+        ),
         onTap: () async {
           await playerViewModel.playSong(widget.song);
         },
+      ),
+    );
+  }
+
+  void _showCreatePlaylistDialog(BuildContext context) {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController descriptionController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create Playlist'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Playlist Name'),
+            ),
+            TextField(
+              controller: descriptionController,
+              decoration:
+                  const InputDecoration(labelText: 'Description (optional)'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (nameController.text.trim().isEmpty) {
+                showSnackBar(context, 'Please enter a playlist name');
+                return;
+              }
+
+              final playlistsViewModel =
+                  Provider.of<PlaylistsViewModel>(context, listen: false);
+              try {
+                final playlist = await playlistsViewModel.createPlaylist(
+                  nameController.text,
+                  descriptionController.text,
+                );
+
+                // Add the current song to the new playlist
+                await playlistsViewModel.addSongToPlaylist(
+                  playlist.id,
+                  widget.song.id,
+                );
+
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  showSnackBar(
+                    context,
+                    'Created playlist and added "${widget.song.title}"',
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  showSnackBar(context, 'Error creating playlist: $e');
+                }
+              }
+            },
+            child: const Text('Create'),
+          ),
+        ],
       ),
     );
   }

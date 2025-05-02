@@ -67,11 +67,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> with AutomaticKeepAli
             child: SongListWidget(
                 songs: viewmodel.favoriteSongs,
                 isLoading: viewmodel.isLoading,
-                onFavoriteToggle: viewmodel.toggleFavorite
+                onFavoriteToggle: (song) {
+                  viewmodel.toggleFavorite(song.id);
+                  // If SongWidget handles the toggle internally without providing the song back
+                  // You might need to access the current song's ID from within the SongWidget
+                  // or redesign how the callback works
+                }
             ),
           );
-        },
-      ),
-    );
+        },      ),    );
   }
 }

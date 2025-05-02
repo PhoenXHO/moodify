@@ -47,17 +47,33 @@ class FavoritesViewModel extends ChangeNotifier {
     }
 
     final songIndex = _favoriteSongs.indexWhere((song) => song.id == songId);
-    if (songIndex >= 0) {
-      // Toggle the favorite status locally
-      _favoriteSongs[songIndex].isFavorite = !_favoriteSongs[songIndex].isFavorite;
-      notifyListeners();
-
-      final success = await _songRepository.toggleFavorite(user.id, songId);
-      if (!success) {
-        _errorMesssage = 'Failed to update favorite status. Please try again.';
+    
+    try {
+      if (songIndex >= 0) {
+        // Song exists in favorites list - toggle its status
         _favoriteSongs[songIndex].isFavorite = !_favoriteSongs[songIndex].isFavorite;
         notifyListeners();
+        
+        final success = await _songRepository.toggleFavorite(user.id, songId);
+        if (!success) {
+          _errorMesssage = 'Failed to update favorite status. Please try again.';
+          _favoriteSongs[songIndex].isFavorite = !_favoriteSongs[songIndex].isFavorite;
+          notifyListeners();
+        }
+      } else {
+        // Song is not in favorites list yet - add it
+        final success = await _songRepository.toggleFavorite(user.id, songId);
+        if (success) {
+          // Refresh favorites to get the updated list
+          await fetchFavorites();
+        } else {
+          _errorMesssage = 'Failed to add to favorites. Please try again.';
+          notifyListeners();
+        }
       }
+    } catch (e) {
+      _errorMesssage = 'Error updating favorites: $e';
+      notifyListeners();
     }
   }
 

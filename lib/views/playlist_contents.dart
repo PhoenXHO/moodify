@@ -1,9 +1,13 @@
+import 'package:emotion_music_player/models/song.dart';
+import 'package:emotion_music_player/viewmodels/favorites_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:emotion_music_player/models/playlist.dart';
 import 'package:emotion_music_player/viewmodels/playlists_viewmodel.dart';
 import 'package:emotion_music_player/widgets/song_list_widget.dart';
 import 'package:emotion_music_player/widgets/snackbar.dart';
+import 'package:emotion_music_player/views/screens/song_selection_screen.dart'
+    as song_selection;
 
 class PlaylistDetailScreen extends StatefulWidget {
   final Playlist playlist;
@@ -18,6 +22,9 @@ class PlaylistDetailScreen extends StatefulWidget {
 }
 
 class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
+  FavoritesViewModel?
+      _favoritesViewModel; // Store a reference to the FavoritesViewModel
+
   @override
   void initState() {
     super.initState();
@@ -26,6 +33,30 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       Provider.of<PlaylistsViewModel>(context, listen: false)
           .loadPlaylistSongs(widget.playlist.id);
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Save a reference to the FavoritesViewModel
+    _favoritesViewModel ??=
+        Provider.of<FavoritesViewModel>(context, listen: false);
+    _favoritesViewModel?.addListener(_refreshPlaylistSongs);
+  }
+
+  @override
+  void dispose() {
+    // Use the stored reference instead of accessing Provider.of
+    _favoritesViewModel?.removeListener(_refreshPlaylistSongs);
+    super.dispose();
+  }
+
+  void _refreshPlaylistSongs() {
+    // Reload playlist songs when favorites change
+    if (mounted) {
+      Provider.of<PlaylistsViewModel>(context, listen: false)
+          .loadPlaylistSongs(widget.playlist.id);
+    }
   }
 
   @override
@@ -52,6 +83,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           if (viewModel.errorMessage != null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               showSnackBar(context, viewModel.errorMessage!);
+              viewModel.clearError();
             });
           }
 
@@ -61,39 +93,22 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
 
           final songs = viewModel.getPlaylistSongs(widget.playlist.id);
 
-          if (songs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'No songs in this playlist',
-                    style: TextStyle(fontSize: 18),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _addSongs,
-                    child: const Text('Add Songs'),
-                  ),
-                ],
-              ),
-            );
-          }
-
           return Column(
             children: [
               // Playlist info section
               Container(
                 padding: const EdgeInsets.all(16),
                 color: Colors.black87,
+                width: double.infinity,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      '${songs.length} songs',
+                      '${songs.length} ${songs.length == 1 ? 'song' : 'songs'}',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     if (widget.playlist.description != null)
@@ -112,8 +127,14 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
               ),
               // Songs list with reordering
               Expanded(
-                child: ReorderableListView.builder(
-                  itemCount: songs.length,
+                child: SongListWidget(
+                  songs: viewModel.getPlaylistSongs(widget.playlist.id),
+                  isLoading: false, // We already checked loading state above
+                  onFavoriteToggle: (Song song) {
+                    Provider.of<FavoritesViewModel>(context, listen: false)
+                        .toggleFavorite(song.id);
+                  },
+                  allowReordering: true,
                   onReorder: (oldIndex, newIndex) {
                     viewModel.reorderSongs(
                       widget.playlist.id,
@@ -121,19 +142,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                       newIndex > oldIndex ? newIndex - 1 : newIndex,
                     );
                   },
-                  itemBuilder: (context, index) {
-                    final song = songs[index];
-                    return ListTile(
-                      key: ValueKey(song.id),
-                      title: Text(song.title),
-                      subtitle: Text(song.artist),
-                      leading: const Icon(Icons.music_note),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.remove_circle_outline),
-                        onPressed: () => _removeSong(song.id),
-                      ),
-                    );
-                  },
+                  onRemove: (song) =>
+                      _removeSong(song), // Pass the correct callback
                 ),
               ),
             ],
@@ -168,33 +178,26 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             ),
             TextField(
               controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
+              decoration:
+                  const InputDecoration(labelText: 'Description (optional)'),
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () async {
-              if (nameController.text.isEmpty) {
-                showSnackBar(context, 'Please enter a playlist name');
-                return;
-              }
-
-              final success = await Provider.of<PlaylistsViewModel>(context, listen: false)
-                  .updatePlaylist(
-                    widget.playlist.id,
-                    nameController.text,
-                    descriptionController.text,
-                  );
-
-              if (success && mounted) {
-                Navigator.pop(context);
-                showSnackBar(context, 'Playlist updated successfully');
-              }
+            onPressed: () {
+              final viewModel =
+                  Provider.of<PlaylistsViewModel>(context, listen: false);
+              viewModel.updatePlaylist(
+                widget.playlist.id,
+                nameController.text,
+                descriptionController.text,
+              );
+              Navigator.of(context).pop();
             },
             child: const Text('Save'),
           ),
@@ -208,20 +211,23 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Playlist'),
-        content: Text('Are you sure you want to delete "${widget.playlist.title}"?'),
+        content:
+            Text('Are you sure you want to delete "${widget.playlist.title}"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              final success = await Provider.of<PlaylistsViewModel>(context, listen: false)
-                  .deletePlaylist(widget.playlist.id);
+              final viewModel =
+                  Provider.of<PlaylistsViewModel>(context, listen: false);
+              final success =
+                  await viewModel.deletePlaylist(widget.playlist.id);
 
               if (success && mounted) {
-                Navigator.pop(context); // Close dialog
-                Navigator.pop(context); // Return to playlists screen
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop(); // Return to playlists screen
                 showSnackBar(context, 'Playlist deleted successfully');
               }
             },
@@ -233,14 +239,41 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     );
   }
 
-  void _addSongs() {
-    // TODO: Implement add songs functionality
-    // This will be implemented when we create the song selection screen
-    showSnackBar(context, 'Add songs functionality coming soon');
+  void _removeSong(String songId) async {
+    final viewModel = Provider.of<PlaylistsViewModel>(context, listen: false);
+    final success =
+        await viewModel.removeSongFromPlaylist(widget.playlist.id, songId);
+
+    if (success) {
+      // Refresh the playlist songs to reflect the removal
+      viewModel.loadPlaylistSongs(widget.playlist.id);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Song removed from playlist')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to remove song from playlist')),
+      );
+    }
   }
 
-  void _removeSong(String songId) {
-    Provider.of<PlaylistsViewModel>(context, listen: false)
-        .removeSongFromPlaylist(widget.playlist.id, songId);
+  void _addSongs() {
+    // Navigate to the song selection screen using MaterialPageRoute instead of named route
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            song_selection.SongSelectionScreen(playlistId: widget.playlist.id),
+      ),
+    );
+  }
+
+  void addSongToPlaylist(String playlistId, String songId) {
+    final viewModel = Provider.of<PlaylistsViewModel>(context, listen: false);
+    viewModel.addSongToPlaylist(playlistId, songId);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: const Text('Song added to playlist')),
+    );
   }
 }

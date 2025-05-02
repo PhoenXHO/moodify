@@ -12,7 +12,7 @@ class PlaylistsScreen extends StatefulWidget {
   State<PlaylistsScreen> createState() => _PlaylistsScreenState();
 }
 
-class _PlaylistsScreenState extends State<PlaylistsScreen> 
+class _PlaylistsScreenState extends State<PlaylistsScreen>
     with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
@@ -23,6 +23,18 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<PlaylistsViewModel>(context, listen: false).fetchPlaylists();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Save any required ancestor references here
+  }
+
+  @override
+  void dispose() {
+    // Avoid accessing ancestor widgets here
+    super.dispose();
   }
 
   Future<void> _createPlaylist() async {
@@ -39,17 +51,14 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
             TextField(
               controller: nameController,
               decoration: const InputDecoration(
-                labelText: 'Playlist Name',
-                hintText: 'Enter playlist name'
-              ),
+                  labelText: 'Playlist Name', hintText: 'Enter playlist name'),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: descriptionController,
               decoration: const InputDecoration(
-                labelText: 'Description (optional)',
-                hintText: 'Enter playlist description'
-              ),
+                  labelText: 'Description (optional)',
+                  hintText: 'Enter playlist description'),
             ),
           ],
         ),
@@ -64,11 +73,13 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
                 showSnackBar(context, 'Please enter a playlist name');
                 return;
               }
-              
-              final success = await Provider.of<PlaylistsViewModel>(context, listen: false)
-                  .createPlaylist(nameController.text, descriptionController.text);
-              
-              if (success && mounted) {
+
+              final success =
+                  await Provider.of<PlaylistsViewModel>(context, listen: false)
+                      .createPlaylist(
+                          nameController.text, descriptionController.text);
+
+              if (success == true && mounted) {
                 Navigator.pop(context);
                 showSnackBar(context, 'Playlist created successfully');
               }
@@ -80,89 +91,125 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
     );
   }
 
+  Future<void> removeSongFromPlaylist(String songId, String playlistId) async {
+    try {
+      // Debugging: Log the songId and playlistId
+      print(
+          'Attempting to remove song with ID: $songId from playlist with ID: $playlistId');
+
+      final response =
+          await Provider.of<PlaylistsViewModel>(context, listen: false)
+              .removeSongFromPlaylist(songId, playlistId);
+
+      // Debugging: Log the raw response
+      print('Raw response from removeSongFromPlaylist: $response');
+
+      if (response) {
+        setState(() {
+          // Refresh playlists after removing the song
+          Provider.of<PlaylistsViewModel>(context, listen: false)
+              .fetchPlaylists();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Song removed successfully')),
+        );
+      } else {
+        throw Exception('Failed to remove song');
+      }
+    } catch (e) {
+      // Debugging: Log the error
+      print('Error while removing song: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to remove song: $e')),
+      );
+    }
+  }
+
   @override
-Widget build(BuildContext context) {
-  super.build(context);
+  Widget build(BuildContext context) {
+    super.build(context);
 
-  return Scaffold(
-    appBar: AppBar(
-      title: const Text('My Playlists'),
-      centerTitle: true,
-      backgroundColor: Colors.black,
-      foregroundColor: Colors.white,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.add),
-          onPressed: _createPlaylist,
-        ),
-      ],
-    ),
-    body: Consumer<PlaylistsViewModel>(
-      builder: (context, viewModel, child) {
-        print('Building playlist view with ${viewModel.playlists.length} playlists'); // Debug UI
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Playlists'),
+        centerTitle: true,
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _createPlaylist,
+          ),
+        ],
+      ),
+      body: Consumer<PlaylistsViewModel>(
+        builder: (context, viewModel, child) {
+          print(
+              'Building playlist view with ${viewModel.playlists.length} playlists'); // Debug UI
 
-        if (viewModel.errorMessage != null) {
-          print('Error message: ${viewModel.errorMessage}'); // Debug error
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            showSnackBar(context, viewModel.errorMessage!);
-          });
-        }
+          if (viewModel.errorMessage != null) {
+            print('Error message: ${viewModel.errorMessage}'); // Debug error
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              showSnackBar(context, viewModel.errorMessage!);
+            });
+          }
 
-        if (viewModel.isLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
+          if (viewModel.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        if (viewModel.playlists.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'No playlists yet',
-                  style: TextStyle(fontSize: 18),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _createPlaylist,
-                  child: const Text('Create Playlist'),
-                ),
-              ],
+          if (viewModel.playlists.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'No playlists yet',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _createPlaylist,
+                    child: const Text('Create Playlist'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () => viewModel.fetchPlaylists(),
+            child: ListView.builder(
+              itemCount: viewModel.playlists.length,
+              itemBuilder: (context, index) {
+                final playlist = viewModel.playlists[index];
+                return ListTile(
+                  title: Text(playlist.title),
+                  subtitle: Text(
+                    playlist.description ?? '${playlist.songCount} songs',
+                  ),
+                  leading: const Icon(Icons.queue_music),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.more_vert),
+                    onPressed: () => _showPlaylistOptions(context, playlist),
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            PlaylistDetailScreen(playlist: playlist),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () => viewModel.fetchPlaylists(),
-          child: ListView.builder(
-            itemCount: viewModel.playlists.length,
-            itemBuilder: (context, index) {
-              final playlist = viewModel.playlists[index];
-              return ListTile(
-                title: Text(playlist.title),
-                subtitle: Text(
-                  playlist.description ?? '${playlist.songCount} songs',
-                ),
-                leading: const Icon(Icons.queue_music),
-                trailing: IconButton(
-                  icon: const Icon(Icons.more_vert),
-                  onPressed: () => _showPlaylistOptions(context, playlist),
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PlaylistDetailScreen(playlist: playlist),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        );
-      },
-    ),
-  );
-}
+        },
+      ),
+    );
+  }
 
   void _showPlaylistOptions(BuildContext context, Playlist playlist) {
     showModalBottomSheet(
@@ -193,9 +240,12 @@ Widget build(BuildContext context) {
       ),
     );
   }
+
   void _editPlaylist(Playlist playlist) {
-    final TextEditingController nameController = TextEditingController(text: playlist.title);
-    final TextEditingController descriptionController = TextEditingController(text: playlist.description);
+    final TextEditingController nameController =
+        TextEditingController(text: playlist.title);
+    final TextEditingController descriptionController =
+        TextEditingController(text: playlist.description);
 
     showDialog(
       context: context,
@@ -207,17 +257,14 @@ Widget build(BuildContext context) {
             TextField(
               controller: nameController,
               decoration: const InputDecoration(
-                labelText: 'Playlist Name',
-                hintText: 'Enter playlist name'
-              ),
+                  labelText: 'Playlist Name', hintText: 'Enter playlist name'),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: descriptionController,
               decoration: const InputDecoration(
-                labelText: 'Description (optional)',
-                hintText: 'Enter playlist description'
-              ),
+                  labelText: 'Description (optional)',
+                  hintText: 'Enter playlist description'),
             ),
           ],
         ),
@@ -232,10 +279,12 @@ Widget build(BuildContext context) {
                 showSnackBar(context, 'Please enter a playlist name');
                 return;
               }
-              
-              final success = await Provider.of<PlaylistsViewModel>(context, listen: false)
-                  .updatePlaylist(playlist.id, nameController.text, descriptionController.text);
-              
+
+              final success =
+                  await Provider.of<PlaylistsViewModel>(context, listen: false)
+                      .updatePlaylist(playlist.id, nameController.text,
+                          descriptionController.text);
+
               if (success && mounted) {
                 Navigator.pop(context);
                 showSnackBar(context, 'Playlist updated successfully');
@@ -247,6 +296,7 @@ Widget build(BuildContext context) {
       ),
     );
   }
+
   void _deletePlaylist(String playlistId) {
     showDialog(
       context: context,
@@ -260,9 +310,10 @@ Widget build(BuildContext context) {
           ),
           TextButton(
             onPressed: () async {
-              final success = await Provider.of<PlaylistsViewModel>(context, listen: false)
-                  .deletePlaylist(playlistId);
-              
+              final success =
+                  await Provider.of<PlaylistsViewModel>(context, listen: false)
+                      .deletePlaylist(playlistId);
+
               if (success && mounted) {
                 Navigator.pop(context);
                 showSnackBar(context, 'Playlist deleted successfully');

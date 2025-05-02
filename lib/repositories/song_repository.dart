@@ -57,8 +57,10 @@ class SongRepository {
 
       // Client-side filtering (less efficient but works for now)
       songs.removeWhere((song) {
-        bool hasExcludedMood = excludeMoods.any((mood) => song.moods.contains(mood));
-        bool hasExcludedGenre = excludeGenres.any((genre) => song.genres.contains(genre));
+        bool hasExcludedMood =
+            excludeMoods.any((mood) => song.moods.contains(mood));
+        bool hasExcludedGenre =
+            excludeGenres.any((genre) => song.genres.contains(genre));
         return hasExcludedMood || hasExcludedGenre;
       });
 
@@ -101,11 +103,8 @@ class SongRepository {
           .select()
           .eq('user_id', userId)
           .eq('song_id', songId);
-      var song = await _supabase
-          .from('songs')
-          .select()
-          .eq('id', songId)
-          .single();
+      var song =
+          await _supabase.from('songs').select().eq('id', songId).single();
 
       // If the song is already a favorite, remove it, otherwise add it
       if (response.isNotEmpty) {
@@ -115,29 +114,65 @@ class SongRepository {
             .eq('user_id', userId)
             .eq('song_id', songId);
         // Update the song's favorite count
-        await _supabase
-            .from('songs')
-            .update({
-              'favorite_count': max<int>(0, song['favorite_count'] - 1), // Ensure it doesn't go below 0
-            })
-            .eq('id', songId);
+        await _supabase.from('songs').update({
+          'favorite_count': max<int>(
+              0, song['favorite_count'] - 1), // Ensure it doesn't go below 0
+        }).eq('id', songId);
       } else {
         await _supabase
             .from('favorites')
             .insert({'user_id': userId, 'song_id': songId});
         // Update the song's favorite count
-        await _supabase
-            .from('songs')
-            .update({
-              'favorite_count': song['favorite_count'] + 1,
-            })
-            .eq('id', songId);
+        await _supabase.from('songs').update({
+          'favorite_count': song['favorite_count'] + 1,
+        }).eq('id', songId);
       }
 
       return true;
     } catch (e) {
       print('Error toggling favorite: $e');
       return false;
+    }
+  }
+
+  Future<List<Song>> getAllSongs() async {
+    try {
+      print("🎵 Song Repository: Starting to fetch songs");
+
+      // Fix: Remove the execute() call and use the proper Supabase query format
+      final response = await Supabase.instance.client
+          .from('songs')
+          .select(); // This returns all columns for all rows
+
+      // Check if we got data
+      if (response == null) {
+        print("⚠️ Song Repository: No data returned");
+        return [];
+      }
+
+      print(
+          "✅ Song Repository: Raw song data received: ${response.length} items");
+
+      // Convert JSON to Song objects
+      final List<Song> songs = [];
+      for (var songData in response) {
+        try {
+          final song = Song.fromJson(songData);
+          songs.add(song);
+          print("✅ Successfully parsed song: ${song.title}");
+        } catch (e) {
+          print("❌ Error parsing song: $e");
+          print("❌ Problematic song data: $songData");
+        }
+      }
+
+      print(
+          "✅ Song Repository: Successfully converted ${songs.length} songs from JSON");
+      return songs;
+    } catch (e) {
+      print("❌ Song Repository Error: $e");
+      // Return empty list instead of throwing to prevent UI crashes
+      return [];
     }
   }
 }
