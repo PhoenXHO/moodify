@@ -1,3 +1,5 @@
+
+import 'package:emotion_music_player/views/emotion.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -22,7 +24,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     // Get the view model
     _chatViewModel = Provider.of<ChatViewModel>(context, listen: false);
-    
+
     // Initialize chat history
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _chatViewModel.initChat();
@@ -85,6 +87,16 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: () => _showClearHistoryDialog(),
             tooltip: 'Clear chat history',
           ),
+          IconButton(
+            icon: const Icon(Icons.camera_alt_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const EmotionView()),
+              );
+            },
+            tooltip: 'Open camera',
+          ),
         ],
       ),
       body: Column(
@@ -96,14 +108,14 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (viewModel.isLoading) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                
+
                 if (viewModel.messages.isEmpty) {
                   return const Center(child: Text('No messages yet'));
                 }
 
                 // Update the previous message count for the listener check
                 _previousMessageCount = viewModel.messageCount;
-                
+
                 return ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.all(16.0),
@@ -119,7 +131,7 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          
+
           // Input area
           Container(
             decoration: BoxDecoration(
@@ -133,7 +145,8 @@ class _ChatScreenState extends State<ChatScreen> {
               ],
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Row(
                 children: [
                   // Text field
@@ -176,13 +189,14 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-  
+
   void _showClearHistoryDialog() {
     showDialog(
-      context: context, 
+      context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear chat history'),
-        content: const Text('Are you sure you want to clear your chat history? This action cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to clear your chat history? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),

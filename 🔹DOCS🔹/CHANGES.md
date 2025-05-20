@@ -187,3 +187,14 @@ _Note: Old changes will be grayed out to indicate that they are no longer releva
 - 🔷 Updated `NOTES.md` with additional AI assistant feature ideas
 - 🔷 Fixed formatting in `DATABASE.md` to improve readability
 - 🟩 Added environment variable documentation in a new `ENVIRONMENT.md` file
+
+Najat: 10-05-2025  
+🟩 Added emotion-based playlist creation:
+
+- Integrated camera-based emotion detection with playlist creation
+- Created EmotionViewModel that connects emotion detection to chat functionality
+- Implemented server connection to emotion analysis API
+- Connected emotion detection flow to ChatViewModel's messaging system
+- Created EmotionModel for handling emotion detection responses
+- Added EmotionView UI for capturing and displaying user emotions
+- Extended provider hierarchy to establish EmotionViewModel-ChatViewModel relationship
