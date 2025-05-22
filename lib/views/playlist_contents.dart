@@ -8,6 +8,7 @@ import 'package:emotion_music_player/widgets/song_list_widget.dart';
 import 'package:emotion_music_player/widgets/snackbar.dart';
 import 'package:emotion_music_player/views/screens/song_selection_screen.dart'
     as song_selection;
+import 'package:emotion_music_player/theme/dimensions.dart';
 
 class PlaylistDetailScreen extends StatefulWidget {
   final Playlist playlist;
@@ -69,11 +70,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit),
+            icon: const Icon(Icons.edit, size: Dimensions.iconSize), // Use Dimensions
             onPressed: _editPlaylist,
           ),
           IconButton(
-            icon: const Icon(Icons.delete),
+            icon: const Icon(Icons.delete, size: Dimensions.iconSize), // Use Dimensions
             onPressed: _deletePlaylist,
           ),
         ],
@@ -152,7 +153,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addSongs,
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, size: Dimensions.iconSize), // Use Dimensions
       ),
     );
   }

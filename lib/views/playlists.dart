@@ -4,6 +4,9 @@ import 'package:emotion_music_player/viewmodels/playlists_viewmodel.dart';
 import 'package:emotion_music_player/models/playlist.dart';
 import 'package:emotion_music_player/widgets/snackbar.dart';
 import 'package:emotion_music_player/views/playlist_contents.dart';
+import 'package:emotion_music_player/theme/app_colors.dart';
+import 'package:emotion_music_player/theme/dimensions.dart';
+import 'package:emotion_music_player/theme/text_styles.dart';
 
 class PlaylistsScreen extends StatefulWidget {
   const PlaylistsScreen({super.key});
@@ -124,38 +127,38 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
       );
     }
   }
-
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('My Playlists'),
+        title: const Text('Playlists'),
         centerTitle: true,
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.background,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add, size: Dimensions.iconSize), // Use Dimensions
             onPressed: _createPlaylist,
           ),
         ],
       ),
       body: Consumer<PlaylistsViewModel>(
         builder: (context, viewModel, child) {
-          print(
-              'Building playlist view with ${viewModel.playlists.length} playlists'); // Debug UI
-
           if (viewModel.errorMessage != null) {
-            print('Error message: ${viewModel.errorMessage}'); // Debug error
             WidgetsBinding.instance.addPostFrameCallback((_) {
               showSnackBar(context, viewModel.errorMessage!);
             });
           }
 
           if (viewModel.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+              ),
+            );
           }
 
           if (viewModel.playlists.isEmpty) {
@@ -163,9 +166,9 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     'No playlists yet',
-                    style: TextStyle(fontSize: 18),
+                    style: AppTextStyles.body1,
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
@@ -179,34 +182,76 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
 
           return RefreshIndicator(
             onRefresh: () => viewModel.fetchPlaylists(),
+            color: AppColors.primary,
             child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 16.0),
               itemCount: viewModel.playlists.length,
               itemBuilder: (context, index) {
                 final playlist = viewModel.playlists[index];
-                return ListTile(
-                  title: Text(playlist.title),
-                  subtitle: Text(
-                    playlist.description ?? '${playlist.songCount} songs',
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
                   ),
-                  leading: const Icon(Icons.queue_music),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.more_vert),
-                    onPressed: () => _showPlaylistOptions(context, playlist),
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            PlaylistDetailScreen(playlist: playlist),
-                      ),
-                    );
-                  },
+                  child: _buildPlaylistItem(context, playlist),
                 );
               },
             ),
           );
         },
+      ),
+    );
+  }
+  
+  Widget _buildPlaylistItem(BuildContext context, Playlist playlist) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PlaylistDetailScreen(playlist: playlist),
+          ),
+        );
+      },
+      child: Row(
+        children: [
+          // Playlist thumbnail
+          Container(
+            width: 56.0,
+            height: 56.0,
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+          ),
+          const SizedBox(width: 16.0),
+          // Playlist info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  playlist.title,
+                  style: AppTextStyles.playlistTitle,
+                ),
+                const SizedBox(height: 4.0),
+                Text(
+                  '${playlist.songCount} Songs',
+                  style: AppTextStyles.playlistSubtitle,
+                ),
+              ],
+            ),
+          ),
+          //! Fix this
+          // Action buttons
+          IconButton(
+            icon: playlist.title == 'Anime Songs'
+                ? const Icon(Icons.graphic_eq, size: Dimensions.iconSize) // Use Dimensions
+                : const Icon(Icons.more_vert), // Skip 3-dots icon
+            onPressed: () => _showPlaylistOptions(context, playlist),
+          ),
+        ],
       ),
     );
   }
@@ -220,7 +265,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.edit),
+              leading: const Icon(Icons.edit, size: Dimensions.iconSize), // Use Dimensions
               title: const Text('Edit Playlist'),
               onTap: () {
                 Navigator.pop(context);
@@ -228,7 +273,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete),
+              leading: const Icon(Icons.delete, size: Dimensions.iconSize), // Use Dimensions
               title: const Text('Delete Playlist'),
               onTap: () {
                 Navigator.pop(context);

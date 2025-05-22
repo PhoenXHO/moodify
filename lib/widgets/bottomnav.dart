@@ -6,6 +6,8 @@ import 'package:emotion_music_player/views/favorites.dart';
 import 'package:emotion_music_player/views/settings.dart';
 import 'package:provider/provider.dart';
 
+import '../theme/app_colors.dart';
+import '../theme/dimensions.dart';
 import '../viewmodels/favorites_viewmodel.dart';
 import '../viewmodels/player_viewmodel.dart';
 import 'mini_player.dart';
@@ -27,27 +29,33 @@ class _BottomNavState extends State<BottomNav> {
     FavoritesScreen(),
     SettingsScreen()
   ];
-
   @override
   Widget build(BuildContext context) {
     // Listen to player changes explicitly
     final playerViewModel = Provider.of<PlayerViewModel>(context);
+    final isChatScreen = currentTabIndex == 2;
 
     return Scaffold(
-      body: Column(
+      body: Stack(
         children: [
           // Main content area
-          Expanded(child: screens[currentTabIndex]),
-          // Mini player
+          screens[currentTabIndex],
+
+          // Mini player - positioned above bottom nav
           if (playerViewModel.currentSong != null)
-            MiniPlayer(),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: isChatScreen ? Dimensions.bottomNavHeight + 12.0 : 12, // Adjust bottom based on screen
+              child: MiniPlayer(isMinimized: isChatScreen), // Pass isMinimized
+            ),
         ],
       ),
-      backgroundColor: Colors.black, 
+      backgroundColor: AppColors.background, 
       bottomNavigationBar: Container(
         width: 320, 
-        height: 51, 
-        margin: EdgeInsets.only(bottom: 10), 
+        height: Dimensions.bottomNavHeight, // Use Dimensions
+        margin: const EdgeInsets.only(bottom: 10, left: 16, right: 16), // Added horizontal margin for consistency
         decoration: BoxDecoration(
           color: Colors.black,
           borderRadius: BorderRadius.circular(15),
@@ -80,14 +88,14 @@ class _BottomNavState extends State<BottomNav> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 24), 
+          Icon(icon, color: Colors.white, size: Dimensions.iconSize), // Use Dimensions for icon size
           if (currentTabIndex == index)
             Container(
               width: 6,
               height: 6,
               margin: EdgeInsets.only(top: 4),
               decoration: BoxDecoration(
-                color: Colors.red,
+                color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
             ),

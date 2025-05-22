@@ -101,6 +101,7 @@ class ChatViewModel extends ChangeNotifier {
 
       // Get AI response
       final aiResponseString = await _aiService.getAiResponse(userMessage, history);
+      print("AI response: $aiResponseString");
 
       // Try to parse for a function call
       final functionCall = AiService.tryParseFunctionCall(aiResponseString);

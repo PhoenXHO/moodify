@@ -1,4 +1,5 @@
 import 'package:emotion_music_player/models/song.dart';
+import 'package:emotion_music_player/theme/dimensions.dart';
 import 'package:emotion_music_player/viewmodels/playlists_viewmodel.dart';
 import 'package:emotion_music_player/widgets/snackbar.dart';
 import 'package:flutter/material.dart';
@@ -98,7 +99,7 @@ class _SongSelectionScreenState extends State<SongSelectionScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, color: Colors.red, size: 48),
+            Icon(Icons.error_outline, color: Colors.red, size: Dimensions.iconSizeLarge), // Use Dimensions
             SizedBox(height: 16),
             Text('Error: $_error', style: TextStyle(color: Colors.red)),
             SizedBox(height: 16),
@@ -116,7 +117,7 @@ class _SongSelectionScreenState extends State<SongSelectionScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.music_off, color: Colors.grey, size: 48),
+            Icon(Icons.music_off, color: Colors.grey, size: Dimensions.iconSizeLarge), // Use Dimensions
             SizedBox(height: 16),
             Text('No songs available'),
             SizedBox(height: 16),
@@ -138,7 +139,7 @@ class _SongSelectionScreenState extends State<SongSelectionScreen> {
         return Card(
           margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: ListTile(
-            leading: const Icon(Icons.music_note),
+            leading: const Icon(Icons.music_note, size: Dimensions.iconSize), // Use Dimensions
             title:
                 Text(song.title, style: TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text(song.artist),

@@ -6,6 +6,7 @@ import '../models/song.dart';
 
 class PlayerViewModel extends ChangeNotifier {
   final AudioPlayerService _audioService = AudioPlayerService();
+  Song? _currentSongOverride; // Add this line
 
   PlayerViewModel() {
     _init();
@@ -22,9 +23,11 @@ class PlayerViewModel extends ChangeNotifier {
   Stream<PlayerState> get playerStateStream => _audioService.playerStateStream;
   Stream<PositionData> get positionDataStream => _audioService.positionDataStream;
 
-  Song? get currentSong => _audioService.currentSong;
+  // Modify currentSong getter
+  Song? get currentSong => _currentSongOverride ?? _audioService.currentSong;
 
   Future<void> playSong(Song song) async {
+    _currentSongOverride = null; // Reset override when a new song plays
     await _audioService.playSong(song);
     notifyListeners();
   }
@@ -33,11 +36,21 @@ class PlayerViewModel extends ChangeNotifier {
     await _audioService.togglePlayback();
     notifyListeners();
   }
-
   Future<void> seekTo(Duration position) async {
     await _audioService.seek(position);
     notifyListeners();
   }
+
+  Future<void> closePlayer() async {
+    // Pause the playback
+    await _audioService.player.pause();
+    
+    // Set override to null to hide the mini player
+    _currentSongOverride = null;
+    
+    notifyListeners();
+  }
+
 
   @override
   void dispose() {

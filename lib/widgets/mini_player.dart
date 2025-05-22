@@ -1,11 +1,19 @@
 import 'package:emotion_music_player/services/audioplayer_service.dart';
 import 'package:emotion_music_player/viewmodels/player_viewmodel.dart';
+import 'package:emotion_music_player/theme/app_colors.dart';
+import 'package:emotion_music_player/theme/text_styles.dart';
+import 'package:emotion_music_player/theme/dimensions.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:provider/provider.dart';
 
 class MiniPlayer extends StatefulWidget {
-  const MiniPlayer({super.key});
+  final bool isMinimized;
+
+  const MiniPlayer({
+    super.key,
+    this.isMinimized = false,
+  });
 
   @override
   State<MiniPlayer> createState() => _MiniPlayerState();
@@ -32,136 +40,269 @@ class _MiniPlayerState extends State<MiniPlayer> {
     Provider.of<PlayerViewModel>(context, listen: false).removeListener(_handlePlayerChanges);
     super.dispose();
   }
+  void _closePlayer() {
+    final playerViewModel = Provider.of<PlayerViewModel>(context, listen: false);
+    // Stop playback and clear the current song
+    playerViewModel.closePlayer();
+  }
 
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<PlayerViewModel>(context);
     final currentSong = viewModel.currentSong;
 
+    if (currentSong == null) return const SizedBox.shrink(); // Add this check
+
+    // Calculate safe area to avoid overlapping with system UI
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
+    // Return the minimized version for the chat screen
+    if (widget.isMinimized) {
+      return _buildMinimizedPlayer(viewModel, currentSong, bottomPadding);
+    }
+    
+    // Return the regular mini player for all other screens
+    return _buildFullPlayer(viewModel, currentSong, bottomPadding);
+  }
+
+  Widget _buildMinimizedPlayer(PlayerViewModel viewModel, currentSong, double bottomPadding) {
     return Container(
-      height: 72,
+      height: Dimensions.miniPlayerMinimizedHeight,
+      margin: EdgeInsets.only(
+        left: 16.0, 
+        right: 16.0,
+        bottom: bottomPadding + 8.0
+      ),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: AppColors.miniPlayerBackground,
+        borderRadius: BorderRadius.circular(16.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10.0,
+            offset: const Offset(0, 4),
+          )
+        ]
+      ),
+      child: Row(
+        children: [
+          // Album art (if available)
+          const SizedBox(width: 16.0),
+          
+          // Song info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Song title
+                Text(
+                  currentSong.title,
+                  style: AppTextStyles.songTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                
+                // Artist name
+                Text(
+                  currentSong.artist,
+                  style: AppTextStyles.artistName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          
+          // Playback controls
+          StreamBuilder<PlayerState>(
+            stream: viewModel.playerStateStream,
+            builder: (context, snapshot) {
+              final playerState = snapshot.data;
+              final isPlaying = playerState?.playing ?? false;
+              
+              return IconButton(
+                icon: Icon(
+                  isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                  size: Dimensions.iconSizeLarge, // Use Dimensions
+                ),
+                color: AppColors.primary,
+                onPressed: viewModel.togglePlayPause,
+              );
+            }
+          ),
+          
+          // Close button
+          IconButton(
+            icon: Icon(Icons.close, size: Dimensions.iconSizeSmall), // Use Dimensions
+            color: AppColors.textSecondary,
+            onPressed: _closePlayer,
+          ),
+          
+          const SizedBox(width: 8.0),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildFullPlayer(PlayerViewModel viewModel, currentSong, double bottomPadding) {
+    return Container(
+      margin: EdgeInsets.only(
+        left: 16.0, 
+        right: 16.0,
+        bottom: bottomPadding + 16.0
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.miniPlayerBackground,
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10.0,
+            offset: const Offset(0, 4),
           )
         ]
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Progress bar
-          StreamBuilder<PositionData>(
-            stream: viewModel.positionDataStream,
-            builder: (context, snapshot) {
-              final positionData = snapshot.data;
-              final position = positionData?.position ?? Duration.zero;
-              final duration = positionData?.duration ?? Duration.zero;
-
-              return LinearProgressIndicator(
-                value: duration.inMilliseconds > 0 ?
-                    position.inMilliseconds / duration.inMilliseconds
-                    : 0.0,
-                backgroundColor: Colors.grey[300],
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  Theme.of(context).primaryColor,
-                ),
-                minHeight: 2,
-              );
-            }
-          ),
-
-          // Song info and controls
-          Expanded(
+          // Close button and song info row
+          Padding(
+            padding: const EdgeInsets.only(left: 16.0, right: 8.0, top: 12.0),
             child: Row(
               children: [
-                // Album art
-                // AspectRatio(
-                //   aspectRatio: 1,
-                //   child: Container(
-                //     margin: const EdgeInsets.all(4),
-                //     decoration: BoxDecoration(
-                //       borderRadius: BorderRadius.circular(4),
-                //       image: const DecorationImage(
-                //         image: AssetImage('assets/album_art.png'),
-                //         fit: BoxFit.cover,
-                //       ),
-                //     ),
-                //   ),
-                // )
-
                 // Song info
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Song title
-                        Text(currentSong!.title,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Song title
+                      Text(
+                        currentSong.title,
+                        style: AppTextStyles.songTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
 
-                        // Artist name
-                        Text(currentSong.artist,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
+                      // Artist name
+                      Text(
+                        currentSong.artist,
+                        style: AppTextStyles.artistName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
-
-                // Playback controls
-                StreamBuilder<PlayerState>(
-                  stream: viewModel.playerStateStream,
-                  builder: (context, snapshot) {
-                    final playerState = snapshot.data;
-                    final processingState = playerState?.processingState;
-                    final isPlaying = playerState?.playing ?? false;
-
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Previous button
-                        IconButton(
-                          icon: const Icon(Icons.skip_previous),
-                          onPressed: null, // TODO: Implement previous song action for playlists
-                        ),
-
-                        // Play/Pause button
-                        IconButton(
-                          icon: Icon(
-                            isPlaying ? Icons.pause : Icons.play_arrow,
-                            size: 32,
-                          ),
-                          onPressed: viewModel.togglePlayPause,
-                        ),
-
-                        // Next button
-                        IconButton(
-                          icon: const Icon(Icons.skip_next),
-                          onPressed: null, // TODO: Implement next song action for playlists
-                        ),
-                      ],
-                    );
-                  }
-                )
+                
+                // Close button
+                IconButton(
+                  icon: Icon(Icons.close, size: Dimensions.iconSizeSmall), // Use Dimensions
+                  color: AppColors.textSecondary,
+                  onPressed: _closePlayer,
+                ),
               ],
             ),
-          )
+          ),
+
+          // Progress bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: StreamBuilder<PositionData>(
+              stream: viewModel.positionDataStream,
+              builder: (context, snapshot) {
+                final positionData = snapshot.data;
+                final position = positionData?.position ?? Duration.zero;
+                final duration = positionData?.duration ?? Duration.zero;
+
+                return SliderTheme(
+                  data: SliderThemeData(
+                    trackHeight: 2.0,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
+                    activeTrackColor: AppColors.primary,
+                    inactiveTrackColor: AppColors.progressBackground,
+                    thumbColor: AppColors.primary,
+                    overlayColor: AppColors.primary.withOpacity(0.2),
+                  ),
+                  child: Slider(
+                    value: duration.inMilliseconds > 0
+                        ? position.inMilliseconds / duration.inMilliseconds
+                        : 0.0,
+                    onChanged: (value) {
+                      final newPosition = Duration(
+                        milliseconds: (value * duration.inMilliseconds).round(),
+                      );
+                      viewModel.seekTo(newPosition);
+                    },
+                  ),
+                );
+              }
+            ),
+          ),
+
+          // Playback controls
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Shuffle button
+                IconButton(
+                  icon: Icon(Icons.shuffle, size: Dimensions.iconSize),
+                  color: AppColors.textSecondary,
+                  onPressed: () {
+                    // TODO: Implement shuffle functionality
+                  },
+                ),
+                
+                // Previous button
+                IconButton(
+                  icon: Icon(Icons.skip_previous, size: Dimensions.iconSizeMedium),
+                  color: AppColors.textPrimary,
+                  onPressed: () {
+                    // TODO: Implement previous track
+                  },
+                ),
+
+                // Play/Pause button
+                StreamBuilder<PlayerState>(
+                  stream: viewModel.playerStateStream,
+                  builder: (context, snapshot) {                    final playerState = snapshot.data;
+                    final isPlaying = playerState?.playing ?? false;
+
+                    return IconButton(
+                      icon: Icon(
+                        isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                        size: Dimensions.iconSizeLarge,
+                      ),
+                      color: AppColors.primary,
+                      onPressed: viewModel.togglePlayPause,
+                    );
+                  }
+                ),
+
+                // Next button
+                IconButton(
+                  icon: Icon(Icons.skip_next, size: Dimensions.iconSizeMedium),
+                  color: AppColors.textPrimary,
+                  onPressed: () {
+                    // TODO: Implement next track
+                  },
+                ),
+
+                // Repeat button
+                IconButton(
+                  icon: Icon(Icons.repeat, size: Dimensions.iconSize),
+                  color: AppColors.textSecondary,
+                  onPressed: () {
+                    // TODO: Implement repeat functionality
+                  },
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

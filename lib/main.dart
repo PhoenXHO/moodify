@@ -5,7 +5,7 @@ import 'package:emotion_music_player/viewmodels/chat_viewmodel.dart';
 import 'package:emotion_music_player/viewmodels/favorites_viewmodel.dart';
 import 'package:emotion_music_player/viewmodels/player_viewmodel.dart';
 import 'package:emotion_music_player/views/auth/login.dart';
-import 'package:emotion_music_player/views/screens/song_selection_screen.dart';
+import 'package:emotion_music_player/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -57,10 +57,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
           title: 'Moodify',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-            useMaterial3: true,
-          ),
+          theme: AppTheme.theme,
           home: LoginScreen()),
     );
   }

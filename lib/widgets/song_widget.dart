@@ -1,10 +1,11 @@
+import 'package:emotion_music_player/theme/dimensions.dart';
 import 'package:emotion_music_player/viewmodels/player_viewmodel.dart';
 import 'package:emotion_music_player/viewmodels/playlists_viewmodel.dart';
-import 'package:emotion_music_player/widgets/bottomnav.dart';
 import 'package:flutter/material.dart';
 import 'package:emotion_music_player/models/song.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../theme/app_colors.dart';
 import '../widgets/snackbar.dart';
 
 class SongWidget extends StatefulWidget {
@@ -27,24 +28,13 @@ class SongWidget extends StatefulWidget {
 
 class _SongWidgetState extends State<SongWidget> {
   final supabase = Supabase.instance.client;
-  bool _isLoading = false;
 
   Future<void> _toggleFavorite() async {
-    setState(() {
-      _isLoading = true;
-    });
-
     try {
       widget.onFavoriteToggle(); // Call without parameters
     } catch (e) {
       if (mounted) {
         showSnackBar(context, 'Error toggling favorite: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
       }
     }
   }
@@ -75,14 +65,14 @@ class _SongWidgetState extends State<SongWidget> {
             IconButton(
               icon: Icon(
                 widget.song.isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: widget.song.isFavorite ? Colors.red : null,
+                color: widget.song.isFavorite ? AppColors.primary : null,
               ),
               onPressed: _toggleFavorite,
             ),
             // Show remove button only if in playlist AND onRemove is provided
             if (widget.inPlaylist && widget.onRemove != null)
               IconButton(
-                icon: const Icon(Icons.remove_circle_outline),
+                icon: const Icon(Icons.remove_circle_outline, size: Dimensions.iconSizeSmall), // Use Dimensions
                 onPressed: () {
                   widget.onRemove?.call(); // Ensure the callback is invoked
                 },

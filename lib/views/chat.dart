@@ -3,6 +3,7 @@ import 'package:emotion_music_player/views/emotion.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../theme/dimensions.dart';
 import '../viewmodels/chat_viewmodel.dart';
 import '../widgets/message_bubble.dart';
 
@@ -83,12 +84,12 @@ class _ChatScreenState extends State<ChatScreen> {
         actions: [
           // Add option to clear chat history
           IconButton(
-            icon: const Icon(Icons.delete_outline),
+            icon: const Icon(Icons.delete_outline, size: Dimensions.iconSize),
             onPressed: () => _showClearHistoryDialog(),
             tooltip: 'Clear chat history',
           ),
           IconButton(
-            icon: const Icon(Icons.camera_alt_outlined),
+            icon: const Icon(Icons.camera_alt_outlined, size: Dimensions.iconSize),
             onPressed: () {
               Navigator.push(
                 context,
