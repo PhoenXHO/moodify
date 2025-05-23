@@ -23,6 +23,7 @@ class ChatViewModel extends ChangeNotifier {
   String? _userId;
   String? _originalUserRequest; // Store original request during multi-step AI calls
   bool _isInitialized = false;
+  String? searchQuery; // For search navigation
 
   List<ChatMessage> get messages => _messages;
   bool get isLoading => _isLoading;
@@ -153,12 +154,9 @@ class ChatViewModel extends ChangeNotifier {
         _originalUserRequest = null; // Clear original request after completion
         break;
       case 'SEARCH_SONG':
-        // TODO: Implement song search logic if needed
-        await _chatService.addMessage(
-          _userId!,
-          "I received a search request for: ${parameters['query']}. (Search not implemented yet)",
-          isUserMessage: false,
-        );
+        // Implement song search logic
+        final searchQuery = parameters['query'] as String? ?? '';
+        await _handleSongSearch(searchQuery);
         _originalUserRequest = null; // Clear original request
         break;
       default:
@@ -413,5 +411,49 @@ class ChatViewModel extends ChangeNotifier {
   void dispose() {
     _messageSubscription?.cancel();
     super.dispose();
+  }
+  
+  Future<void> _handleSongSearch(String query) async {
+    if (_userId == null) {
+      print("Error: Missing user ID for song search");
+      await _chatService.addMessage(
+        _userId ?? 'unknown',
+        "Sorry, I couldn't search for songs at this time. Please make sure you're logged in.",
+        isUserMessage: false,
+      );
+      return;
+    }
+
+    if (query.trim().isEmpty) {
+      await _chatService.addMessage(
+        _userId!,
+        "I need a search term to find songs. Please tell me what you're looking for.",
+        isUserMessage: false,
+      );
+      return;
+    }
+
+    _setLoading(true);
+    try {
+      // Preview message before opening the search screen
+      await _chatService.addMessage(
+        _userId!,
+        "Searching for songs matching '$query'. Opening search results...",
+        isUserMessage: false,
+      );
+      
+      // Store search query for navigation
+      searchQuery = query;
+      // Notify listeners to trigger navigation from the ChatScreen
+      notifyListeners();
+    } catch (e) {
+      print("Error searching for songs: $e");
+      await _chatService.addMessage(
+        _userId!,
+        "Sorry, I encountered an error while searching for songs. Please try again later.",
+        isUserMessage: false,
+      );
+    } finally {      _setLoading(false);
+    }
   }
 }

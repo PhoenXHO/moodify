@@ -6,9 +6,10 @@ import 'package:emotion_music_player/models/playlist.dart';
 import 'package:emotion_music_player/viewmodels/playlists_viewmodel.dart';
 import 'package:emotion_music_player/widgets/song_list_widget.dart';
 import 'package:emotion_music_player/widgets/snackbar.dart';
-import 'package:emotion_music_player/views/screens/song_selection_screen.dart'
+import 'package:emotion_music_player/views/song_selection_screen.dart'
     as song_selection;
 import 'package:emotion_music_player/theme/dimensions.dart';
+import 'package:emotion_music_player/theme/app_colors.dart';
 
 class PlaylistDetailScreen extends StatefulWidget {
   final Playlist playlist;
@@ -59,22 +60,22 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           .loadPlaylistSongs(widget.playlist.id);
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(widget.playlist.title),
         centerTitle: true,
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.background,
+        foregroundColor: AppColors.textPrimary,
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit, size: Dimensions.iconSize), // Use Dimensions
+            icon: const Icon(Icons.edit, size: Dimensions.iconSize),
             onPressed: _editPlaylist,
           ),
           IconButton(
-            icon: const Icon(Icons.delete, size: Dimensions.iconSize), // Use Dimensions
+            icon: const Icon(Icons.delete, size: Dimensions.iconSize),
             onPressed: _deletePlaylist,
           ),
         ],
@@ -97,9 +98,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           return Column(
             children: [
               // Playlist info section
-              Container(
-                padding: const EdgeInsets.all(16),
-                color: Colors.black87,
+              Container(                padding: const EdgeInsets.all(16),
+                color: AppColors.surface,
                 width: double.infinity,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -107,7 +107,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     Text(
                       '${songs.length} ${songs.length == 1 ? 'song' : 'songs'}',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -171,12 +171,12 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Edit Playlist'),
         content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+          mainAxisSize: MainAxisSize.min,          children: [
             TextField(
               controller: nameController,
               decoration: const InputDecoration(labelText: 'Playlist Name'),
             ),
+            const SizedBox(height: 16), // Added margin between fields
             TextField(
               controller: descriptionController,
               decoration:
@@ -187,7 +187,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: const Text(
+                'CANCEL',
+                style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           TextButton(
             onPressed: () {
@@ -200,7 +203,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
               );
               Navigator.of(context).pop();
             },
-            child: const Text('Save'),
+            child: const Text(
+              'SAVE',
+              style: TextStyle(color: AppColors.primary),
+            ),
           ),
         ],
       ),
@@ -217,7 +223,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -232,16 +241,56 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 showSnackBar(context, 'Playlist deleted successfully');
               }
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: const Text(
+              'DELETE',
+              style: TextStyle(color: AppColors.primary),
+            ),
           ),
         ],
       ),
     );
   }
-
   void _removeSong(String songId) async {
+    // Get song details to show in confirmation dialog
     final viewModel = Provider.of<PlaylistsViewModel>(context, listen: false);
+    final songs = viewModel.getPlaylistSongs(widget.playlist.id);
+    final songToRemove = songs.firstWhere((song) => song.id == songId);
+    
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(
+          'Remove Song',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          'Are you sure you want to remove "${songToRemove.title}" from this playlist?',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'CANCEL',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              'REMOVE',
+              style: TextStyle(color: AppColors.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed != true) return;
+    
+    // Continue with removal if confirmed
     final success =
         await viewModel.removeSongFromPlaylist(widget.playlist.id, songId);
 

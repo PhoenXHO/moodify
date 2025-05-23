@@ -1,6 +1,7 @@
 import 'package:emotion_music_player/theme/dimensions.dart';
 import 'package:emotion_music_player/viewmodels/player_viewmodel.dart';
 import 'package:emotion_music_player/viewmodels/playlists_viewmodel.dart';
+import 'package:emotion_music_player/viewmodels/favorites_viewmodel.dart';
 import 'package:flutter/material.dart';
 import 'package:emotion_music_player/models/song.dart';
 import 'package:provider/provider.dart';
@@ -10,9 +11,10 @@ import '../widgets/snackbar.dart';
 
 class SongWidget extends StatefulWidget {
   final Song song;
-  final VoidCallback onFavoriteToggle; // Change to VoidCallback (no parameters)
+  final VoidCallback onFavoriteToggle;
   final bool inPlaylist;
   final Function? onRemove;
+  final bool isFavoritesContext; // Added: Flag for favorites screen context
 
   const SongWidget({
     super.key,
@@ -20,6 +22,7 @@ class SongWidget extends StatefulWidget {
     required this.onFavoriteToggle,
     this.inPlaylist = false,
     this.onRemove,
+    this.isFavoritesContext = false, // Added: Default to false
   });
 
   @override
@@ -41,23 +44,37 @@ class _SongWidgetState extends State<SongWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final isUnfavorited = !widget.song.isFavorite;
+    // Updated: Determine if the song should appear disabled
+    final bool shouldAppearDisabled =
+        widget.isFavoritesContext && !widget.song.isFavorite;
     final playerViewModel =
         Provider.of<PlayerViewModel>(context, listen: false);
 
     return Card(
       elevation: 2,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      color: isUnfavorited ? Colors.grey[200] : null,
+      // Updated: Use AppColors.inactive if it should appear disabled
+      color: shouldAppearDisabled ? AppColors.inactive : AppColors.cardBackground,
       child: ListTile(
         title: Text(
           widget.song.title,
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: isUnfavorited ? Colors.grey : null,
+            // Updated: Use AppColors.textSecondary if it should appear disabled
+            color: shouldAppearDisabled
+                ? AppColors.textSecondary
+                : AppColors.textPrimary,
           ),
         ),
-        subtitle: Text(widget.song.artist),
+        subtitle: Text(
+          widget.song.artist,
+          // Updated: Use AppColors.textSecondary if it should appear disabled for subtitle as well
+          style: TextStyle(
+            color: shouldAppearDisabled
+                ? AppColors.textSecondary
+                : AppColors.textSecondary, // Or keep default if preferred
+          ),
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -87,18 +104,38 @@ class _SongWidgetState extends State<SongWidget> {
                     value: 'add_to_playlist',
                     child: const Text('Add to playlist'),
                   ),
-                ],
-                onSelected: (value) {
+                ],                onSelected: (value) {
                   if (value == 'add_to_playlist') {
-                    _showCreatePlaylistDialog(context);
-                    // here we must add the functionality to add to existing playlists
+                    _showPlaylistSelectionBottomSheet(context);
                   }
                 },
               ),
           ],
         ),
         onTap: () async {
-          await playerViewModel.playSong(widget.song);
+          // Get the songs list and determine if we're in a playlist or favorites context
+          if (widget.inPlaylist) {
+            // This is a song in a playlist
+            // Get the playlist ID and songs from the parent widget
+            final playlistsViewModel = Provider.of<PlaylistsViewModel>(context, listen: false);
+            final playlistId = playlistsViewModel.currentPlaylistId; // Assuming this is tracked in the ViewModel
+            if (playlistId != null) {
+              final playlistSongs = playlistsViewModel.getPlaylistSongs(playlistId);
+              await playerViewModel.playSongFromPlaylist(widget.song, playlistSongs, playlistId);
+            } else {
+              // Fallback to regular play if playlist ID is not available
+              await playerViewModel.playSong(widget.song);
+            }
+          } else if (widget.isFavoritesContext) {
+            // This is a song in the favorites screen
+            // Get all favorite songs from the parent
+            final favoritesViewModel = Provider.of<FavoritesViewModel>(context, listen: false);
+            final favoriteSongs = favoritesViewModel.favoriteSongs;
+            await playerViewModel.playSongFromFavorites(widget.song, favoriteSongs);
+          } else {
+            // Regular song play (not from playlist or favorites)
+            await playerViewModel.playSong(widget.song);
+          }
         },
       ),
     );
@@ -129,7 +166,10 @@ class _SongWidgetState extends State<SongWidget> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: const Text(
+                'CANCEL',
+                style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -166,10 +206,149 @@ class _SongWidgetState extends State<SongWidget> {
                 }
               }
             },
-            child: const Text('Create'),
+            child: const Text(
+              'CREATE',
+              style: TextStyle(color: AppColors.primary),
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  // Show playlist selection bottom sheet
+  void _showPlaylistSelectionBottomSheet(BuildContext context) {
+    final playlistsViewModel = Provider.of<PlaylistsViewModel>(context, listen: false);
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Text(
+                      'Add to Playlist',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  
+                  Flexible(
+                    child: FutureBuilder(
+                      future: playlistsViewModel.fetchPlaylists(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        
+                        if (playlistsViewModel.playlists.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(
+                              'No playlists found',
+                              style: TextStyle(color: AppColors.textSecondary),
+                            ),
+                          );
+                        }
+                        
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: playlistsViewModel.playlists.length,
+                          itemBuilder: (context, index) {
+                            final playlist = playlistsViewModel.playlists[index];
+                            return ListTile(
+                              title: Text(
+                                playlist.title,
+                                style: TextStyle(color: AppColors.textPrimary),
+                              ),
+                              subtitle: playlist.description != null && playlist.description!.isNotEmpty
+                                  ? Text(
+                                      playlist.description!,
+                                      style: TextStyle(color: AppColors.textSecondary),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    )
+                                  : null,
+                              leading: Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardBackground,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.music_note,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              onTap: () async {
+                                try {
+                                  await playlistsViewModel.addSongToPlaylist(
+                                    playlist.id,
+                                    widget.song.id,
+                                  );
+                                  
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Added "${widget.song.title}" to "${playlist.title}"'),
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                    showSnackBar(context, 'Error adding song to playlist: $e');
+                                  }
+                                }
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  
+                  // Create new playlist button
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context); // Close bottom sheet
+                        _showCreatePlaylistDialog(context); // Show create dialog
+                      },
+                      child: const Text('Create New Playlist'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

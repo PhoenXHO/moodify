@@ -1,10 +1,12 @@
-
 import 'package:emotion_music_player/views/emotion.dart';
+import 'package:emotion_music_player/views/search.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../theme/app_colors.dart';
 import '../theme/dimensions.dart';
 import '../viewmodels/chat_viewmodel.dart';
+import '../viewmodels/player_viewmodel.dart';
 import '../widgets/message_bubble.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -41,6 +43,26 @@ class _ChatScreenState extends State<ChatScreen> {
       _previousMessageCount = _chatViewModel.messageCount;
       _scrollToBottom();
     }
+    
+    // Check if there's a search query to navigate to search screen
+    if (_chatViewModel.searchQuery != null) {
+      _navigateToSearchScreen(_chatViewModel.searchQuery!);
+      _chatViewModel.searchQuery = null; // Reset after navigating
+    }
+  }
+  
+  void _navigateToSearchScreen(String query) {
+    // Slight delay to allow the chat message to be displayed first
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SearchScreen(initialQuery: query),
+          ),
+        );
+      }
+    });
   }
 
   @override
@@ -72,31 +94,46 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     });
   }
-
   @override
   Widget build(BuildContext context) {
+    // Check if mini-player is visible to add padding
+    final playerViewModel = Provider.of<PlayerViewModel>(context);
+    final isMiniPlayerVisible = playerViewModel.currentSong != null;
+
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Music Assistant'),
-        centerTitle: true,
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        actions: [
-          // Add option to clear chat history
-          IconButton(
-            icon: const Icon(Icons.delete_outline, size: Dimensions.iconSize),
-            onPressed: () => _showClearHistoryDialog(),
-            tooltip: 'Clear chat history',
+        leading: IconButton(
+          icon: const Icon(Icons.camera_alt_outlined, size: Dimensions.iconSize),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const EmotionView()),
+            );
+          },
+          tooltip: 'Open camera',
+        ),
+        title: const Text(
+          'Music Assistant',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
           ),
+        ),
+        backgroundColor: AppColors.background,
+        centerTitle: true,
+        elevation: 0,
+        actions: [
           IconButton(
-            icon: const Icon(Icons.camera_alt_outlined, size: Dimensions.iconSize),
+            icon: const Icon(Icons.search, size: Dimensions.iconSize),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const EmotionView()),
+                MaterialPageRoute(
+                  builder: (context) => const SearchScreen(initialQuery: ''),
+                ),
               );
             },
-            tooltip: 'Open camera',
           ),
         ],
       ),
@@ -108,10 +145,63 @@ class _ChatScreenState extends State<ChatScreen> {
               builder: (context, viewModel, child) {
                 if (viewModel.isLoading) {
                   return const Center(child: CircularProgressIndicator());
-                }
-
-                if (viewModel.messages.isEmpty) {
-                  return const Center(child: Text('No messages yet'));
+                }                if (viewModel.messages.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16.0),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceLight.withOpacity(0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.music_note_rounded,
+                            color: AppColors.primary.withOpacity(0.8),
+                            size: 48,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No messages yet',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: Text(
+                            'Start a conversation to discover music based on your mood or preferences',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.textSecondary.withOpacity(0.7),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        ElevatedButton(
+                          onPressed: () {
+                            _messageController.text = "Recommend me some happy songs";
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.surfaceLight,
+                            foregroundColor: AppColors.textPrimary,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              side: BorderSide(color: AppColors.divider),
+                            ),
+                          ),
+                          child: const Text("Try \"Recommend me some happy songs\""),
+                        ),
+                      ],
+                    ),
+                  );
                 }
 
                 // Update the previous message count for the listener check
@@ -119,10 +209,60 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 return ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: viewModel.messageCount,
+                  padding: EdgeInsets.only(
+                    left: 16.0,
+                    right: 16.0,
+                    top: 16.0,
+                    bottom: isMiniPlayerVisible ? Dimensions.miniPlayerMinimizedHeight + 16.0 : 16.0,
+                  ),
+                  itemCount: viewModel.messageCount + 1, // Add 1 for the welcome message
                   itemBuilder: (context, index) {
-                    final message = viewModel.messages[index];
+                    // Show a welcome message at the top
+                    if (index == 0) {
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16.0),
+                        padding: const EdgeInsets.all(16.0),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceLight.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(16.0),
+                          border: Border.all(color: AppColors.divider, width: 1),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.music_note_rounded,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Welcome to Music Assistant',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Ask me to find songs, create playlists, or recommend music based on your mood!',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final messageIndex = index - 1; // Adjust for welcome message
+                    final message = viewModel.messages[messageIndex];
                     return MessageBubble(
                       message: message.text,
                       isUserMessage: message.isUserMessage,
@@ -132,54 +272,116 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-
-          // Input area
+          // Input field and send button
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.background,
               boxShadow: [
                 BoxShadow(
                   offset: const Offset(0, -2),
                   blurRadius: 6,
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: Colors.black.withOpacity(0.3),
                 ),
               ],
             ),
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.only(
+                left: 16.0,
+                right: 16.0,
+                top: 12.0,
+                bottom: 16.0,
+              ),
               child: Row(
                 children: [
                   // Text field
                   Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Type your message...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceLight,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: AppColors.divider,
+                          width: 1.0,
                         ),
                       ),
-                      textCapitalization: TextCapitalization.sentences,
-                      onSubmitted: (_) => _handleSendPressed(),
+                      child: ClipRRect(  // Added ClipRRect to ensure content is clipped to the container's border radius
+                        borderRadius: BorderRadius.circular(24),
+                        child: TextField(
+                          controller: _messageController,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 16.0,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Type your message...',
+                            hintStyle: TextStyle(
+                              color: AppColors.textSecondary.withOpacity(0.7),
+                              fontSize: 16.0,
+                            ),
+                            // Keep border radius consistent but add focus outline
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(color: AppColors.primary, width: 2),
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            errorBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
+                            // Maintain consistent padding
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            filled: true,
+                            fillColor: AppColors.surfaceLight,  // Match container color
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                Icons.mic_none_rounded,
+                                color: AppColors.textSecondary.withOpacity(0.7),
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                // Voice input functionality could be added here
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Voice input coming soon!'),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          textCapitalization: TextCapitalization.sentences,
+                          onSubmitted: (_) => _handleSendPressed(),
+                          cursorColor: AppColors.primary,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   // Send button
-                  FloatingActionButton(
-                    onPressed: _handleSendPressed,
-                    backgroundColor: Colors.deepPurple,
-                    elevation: 0,
-                    child: const Icon(
-                      Icons.send,
-                      color: Colors.white,
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      onPressed: _handleSendPressed,
+                      icon: const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      tooltip: 'Send message',
                     ),
                   ),
                 ],
@@ -190,18 +392,22 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-
   void _showClearHistoryDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear chat history'),
-        content: const Text(
-            'Are you sure you want to clear your chat history? This action cannot be undone.'),
+        backgroundColor: AppColors.surface,
+        title: Text('Clear chat history', 
+          style: TextStyle(color: AppColors.textPrimary)),
+        content: Text(
+          'Are you sure you want to clear your chat history? This action cannot be undone.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('CANCEL'),
+            child: Text('CANCEL', 
+              style: TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () {
@@ -213,7 +419,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 _scrollController.jumpTo(0);
               }
             },
-            child: const Text('CLEAR'),
+            child: Text('CLEAR', 
+              style: TextStyle(color: AppColors.primary)),
           ),
         ],
       ),

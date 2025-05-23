@@ -29,4 +29,7 @@ class Dimensions {
   static const double elevationSmall = 2.0;
   static const double elevationMedium = 4.0;
   static const double elevationLarge = 8.0;
+
+  // Misc
+  static const double borderRadius = 12.0;
 }

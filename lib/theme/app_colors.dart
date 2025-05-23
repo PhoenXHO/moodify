@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// App color palette
 class AppColors {
   // Primary colors
-  static const Color primary = Color(0xFFBE233D); // Pink accent color
+  static const Color primary = Color(0xFFDB324F); // Pink accent color
   static const Color background = Color(0xFF000000); // Pure black
   static const Color surface = Color(0xFF121212); // Dark surface
   static const Color surfaceLight = Color(0xFF1E1E1E); // Lighter surface
@@ -25,6 +25,7 @@ class AppColors {
   // Button colors
   static const Color buttonPrimary = primary;
   static const Color buttonSecondary = Colors.white;
+  static const Color buttonDanger = Color(0xFFD4222E); // Red for danger actions
   
   // Indicator colors
   static const Color activeIndicator = primary;

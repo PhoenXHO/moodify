@@ -20,13 +20,18 @@ class MiniPlayer extends StatefulWidget {
 }
 
 class _MiniPlayerState extends State<MiniPlayer> {
+  PlayerViewModel? _playerViewModel; // Store the ViewModel instance
+
   @override
   void initState() {
     super.initState();
     // Schedule a post-frame callback to register for song changes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final playerViewModel = Provider.of<PlayerViewModel>(context, listen: false);
-      playerViewModel.addListener(_handlePlayerChanges);
+      // Check if the widget is still mounted before accessing context
+      if (mounted) {
+        _playerViewModel = Provider.of<PlayerViewModel>(context, listen: false);
+        _playerViewModel?.addListener(_handlePlayerChanges);
+      }
     });
   }
 
@@ -37,13 +42,27 @@ class _MiniPlayerState extends State<MiniPlayer> {
 
   @override
   void dispose() {
-    Provider.of<PlayerViewModel>(context, listen: false).removeListener(_handlePlayerChanges);
+    // Use the stored _playerViewModel instance
+    _playerViewModel?.removeListener(_handlePlayerChanges);
     super.dispose();
   }
+
   void _closePlayer() {
-    final playerViewModel = Provider.of<PlayerViewModel>(context, listen: false);
-    // Stop playback and clear the current song
-    playerViewModel.closePlayer();
+    // Use the stored _playerViewModel instance
+    // Ensure _playerViewModel is not null before using it
+    if (_playerViewModel == null) return;
+
+    // Stop playback first
+    _playerViewModel!.togglePlayPause();
+    
+    // Create a small delay to ensure the player state updates before closing
+    Future.delayed(const Duration(milliseconds: 100), () {
+      // Use a complete approach to reset the player state
+      // Check if mounted again before calling, as the delay might outlive the widget
+      if (mounted && _playerViewModel != null) {
+        _playerViewModel!.closePlayer();
+      }
+    });
   }
 
   @override
@@ -71,7 +90,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
       margin: EdgeInsets.only(
         left: 16.0, 
         right: 16.0,
-        bottom: bottomPadding + 8.0
+        bottom: bottomPadding + 16.0
       ),
       decoration: BoxDecoration(
         color: AppColors.miniPlayerBackground,
@@ -84,64 +103,117 @@ class _MiniPlayerState extends State<MiniPlayer> {
           )
         ]
       ),
-      child: Row(
-        children: [
-          // Album art (if available)
-          const SizedBox(width: 16.0),
-          
-          // Song info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Song title
-                Text(
-                  currentSong.title,
-                  style: AppTextStyles.songTitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                
-                // Artist name
-                Text(
-                  currentSong.artist,
-                  style: AppTextStyles.artistName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+      child: ClipRRect( // Added ClipRRect to clip the progress bar
+        borderRadius: BorderRadius.circular(16.0), // Match the container's border radius
+        child: Column(
+          children: [
+            // Main content
+            Expanded(
+              child: Row(
+                children: [
+                  // Album art (if available)
+                  const SizedBox(width: 16.0),
+                  
+                  // Song info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Song title
+                        Text(
+                          currentSong.title,
+                          style: AppTextStyles.songTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        
+                        // Artist name
+                        Text(
+                          currentSong.artist,
+                          style: AppTextStyles.artistName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Playback controls
+                  StreamBuilder<PlayerState>(
+                    stream: viewModel.playerStateStream,
+                    builder: (context, snapshot) {
+                      final playerState = snapshot.data;
+                      final isPlaying = playerState?.playing ?? false;
+                      
+                      return IconButton(
+                        icon: Icon(
+                          isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                          size: Dimensions.iconSizeLarge,
+                        ),
+                        color: AppColors.primary,
+                        onPressed: viewModel.togglePlayPause,
+                      );
+                    }
+                  ),
+                  
+                  // Close button
+                  IconButton(
+                    icon: Icon(Icons.close, size: Dimensions.iconSizeSmall),
+                    color: AppColors.textSecondary,
+                    onPressed: _closePlayer,
+                  ),
+                  
+                  const SizedBox(width: 8.0),
+                ],
+              ),
             ),
-          ),
-          
-          // Playback controls
-          StreamBuilder<PlayerState>(
-            stream: viewModel.playerStateStream,
-            builder: (context, snapshot) {
-              final playerState = snapshot.data;
-              final isPlaying = playerState?.playing ?? false;
-              
-              return IconButton(
-                icon: Icon(
-                  isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                  size: Dimensions.iconSizeLarge, // Use Dimensions
-                ),
-                color: AppColors.primary,
-                onPressed: viewModel.togglePlayPause,
-              );
-            }
-          ),
-          
-          // Close button
-          IconButton(
-            icon: Icon(Icons.close, size: Dimensions.iconSizeSmall), // Use Dimensions
-            color: AppColors.textSecondary,
-            onPressed: _closePlayer,
-          ),
-          
-          const SizedBox(width: 8.0),
-        ],
-      ),
+            
+            // Non-interactive progress bar for minimized player
+            StreamBuilder<PositionData>(
+              stream: viewModel.positionDataStream,
+              builder: (context, snapshot) {
+                final positionData = snapshot.data;
+                final position = positionData?.position ?? Duration.zero;
+                final duration = positionData?.duration ?? Duration.zero;
+                
+                double value = 0.0;
+                if (duration.inMilliseconds > 0) {
+                  value = position.inMilliseconds / duration.inMilliseconds;
+                  // Ensure value is always between 0.0 and 1.0
+                  value = value.clamp(0.0, 1.0);
+                }
+                
+                return Container(
+                  height: 4.0,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppColors.progressBackground,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(16.0),
+                      bottomRight: Radius.circular(16.0),
+                    ),
+                  ),
+                  alignment: Alignment.centerLeft,
+                  child: FractionallySizedBox(
+                    widthFactor: value,
+                    child: Container(
+                      height: 4.0,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(16.0),
+                          bottomRight: Radius.circular(16.0),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }
+            ),
+          ],
+        ),
+      ), // Closing parenthesis for ClipRRect
     );
   }
   
@@ -198,7 +270,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                 
                 // Close button
                 IconButton(
-                  icon: Icon(Icons.close, size: Dimensions.iconSizeSmall), // Use Dimensions
+                  icon: Icon(Icons.close, size: Dimensions.iconSizeSmall),
                   color: AppColors.textSecondary,
                   onPressed: _closePlayer,
                 ),
@@ -215,6 +287,13 @@ class _MiniPlayerState extends State<MiniPlayer> {
                 final positionData = snapshot.data;
                 final position = positionData?.position ?? Duration.zero;
                 final duration = positionData?.duration ?? Duration.zero;
+                
+                double value = 0.0;
+                if (duration.inMilliseconds > 0) {
+                  value = position.inMilliseconds / duration.inMilliseconds;
+                  // Ensure value is always between 0.0 and 1.0
+                  value = value.clamp(0.0, 1.0);
+                }
 
                 return SliderTheme(
                   data: SliderThemeData(
@@ -227,9 +306,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                     overlayColor: AppColors.primary.withOpacity(0.2),
                   ),
                   child: Slider(
-                    value: duration.inMilliseconds > 0
-                        ? position.inMilliseconds / duration.inMilliseconds
-                        : 0.0,
+                    value: value,
                     onChanged: (value) {
                       final newPosition = Duration(
                         milliseconds: (value * duration.inMilliseconds).round(),
@@ -250,26 +327,37 @@ class _MiniPlayerState extends State<MiniPlayer> {
               children: [
                 // Shuffle button
                 IconButton(
-                  icon: Icon(Icons.shuffle, size: Dimensions.iconSize),
-                  color: AppColors.textSecondary,
-                  onPressed: () {
-                    // TODO: Implement shuffle functionality
-                  },
-                ),
-                
-                // Previous button
+                  icon: Icon(
+                    Icons.shuffle,
+                    size: Dimensions.iconSize,
+                    color: viewModel.isShuffleEnabled
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
+                  ),
+                  onPressed: viewModel.isPlayingFromPlaylistOrFavorites
+                      ? viewModel.toggleShuffle
+                      : null,
+                ),                // Previous button
                 IconButton(
-                  icon: Icon(Icons.skip_previous, size: Dimensions.iconSizeMedium),
-                  color: AppColors.textPrimary,
-                  onPressed: () {
-                    // TODO: Implement previous track
-                  },
+                  icon: Icon(
+                    Icons.skip_previous,
+                    size: Dimensions.iconSizeMedium,
+                    color: viewModel.isPlayingFromPlaylistOrFavorites
+                        ? (viewModel.hasPrevious 
+                            ? AppColors.textPrimary 
+                            : AppColors.inactive.withOpacity(0.7))
+                        : AppColors.inactive,
+                  ),
+                  onPressed: viewModel.isPlayingFromPlaylistOrFavorites
+                      ? viewModel.playPrevious
+                      : null,
                 ),
 
                 // Play/Pause button
                 StreamBuilder<PlayerState>(
                   stream: viewModel.playerStateStream,
-                  builder: (context, snapshot) {                    final playerState = snapshot.data;
+                  builder: (context, snapshot) {
+                    final playerState = snapshot.data;
                     final isPlaying = playerState?.playing ?? false;
 
                     return IconButton(
@@ -281,24 +369,34 @@ class _MiniPlayerState extends State<MiniPlayer> {
                       onPressed: viewModel.togglePlayPause,
                     );
                   }
-                ),
-
-                // Next button
+                ),                // Next button
                 IconButton(
-                  icon: Icon(Icons.skip_next, size: Dimensions.iconSizeMedium),
-                  color: AppColors.textPrimary,
-                  onPressed: () {
-                    // TODO: Implement next track
-                  },
+                  icon: Icon(
+                    Icons.skip_next,
+                    size: Dimensions.iconSizeMedium,
+                    color: viewModel.isPlayingFromPlaylistOrFavorites
+                        ? (viewModel.hasNext 
+                            ? AppColors.textPrimary 
+                            : AppColors.inactive.withOpacity(0.7))
+                        : AppColors.inactive,
+                  ),
+                  onPressed: viewModel.isPlayingFromPlaylistOrFavorites
+                      ? viewModel.playNext
+                      : null,
                 ),
 
                 // Repeat button
                 IconButton(
-                  icon: Icon(Icons.repeat, size: Dimensions.iconSize),
-                  color: AppColors.textSecondary,
-                  onPressed: () {
-                    // TODO: Implement repeat functionality
-                  },
+                  icon: Icon(
+                    Icons.repeat,
+                    size: Dimensions.iconSize,
+                    color: viewModel.isLoopEnabled
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
+                  ),
+                  onPressed: viewModel.isPlayingFromPlaylistOrFavorites
+                      ? viewModel.toggleLoop
+                      : null,
                 ),
               ],
             ),

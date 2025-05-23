@@ -175,4 +175,85 @@ class SongRepository {
       return [];
     }
   }
+
+  // Search songs by title, artist, genres, or moods with user-specific favorite status
+  Future<List<Song>> searchSongs(String query, {String? userId, int limit = 20}) async {
+    try {
+      print("🔍 Song Repository: Searching for songs with query: '$query'");
+
+      if (query.trim().isEmpty) {
+        return await getAllSongs();
+      }
+
+      // Convert query to lowercase for case-insensitive search
+      final lowerQuery = query.toLowerCase();
+
+      // Get all songs and filter locally (more flexible than PostgreSQL ilike)
+      final allSongs = await getAllSongs();
+
+      // Get user favorites if userId is provided
+      Set<String> favoriteIds = {};
+      if (userId != null) {
+        try {
+          final favorites = await getFavorites(userId);
+          favoriteIds = favorites.map((song) => song.id).toSet();
+        } catch (e) {
+          print("⚠️ Could not fetch favorites: $e");
+        }
+      }
+
+      // Filter songs where title, artist, genres, or moods match the query
+      final List<Song> matchingSongs = allSongs.where((song) {
+        // Check title and artist (primary matches)
+        final titleMatch = song.title.toLowerCase().contains(lowerQuery);
+        final artistMatch = song.artist.toLowerCase().contains(lowerQuery);
+
+        // Check genres and moods (secondary matches)
+        final genreMatch = song.genres.any(
+                (genre) => genre.toLowerCase().contains(lowerQuery)
+        );
+        final moodMatch = song.moods.any(
+                (mood) => mood.toLowerCase().contains(lowerQuery)
+        );
+
+        return titleMatch || artistMatch || genreMatch || moodMatch;
+      }).toList();
+
+      // Mark favorite status if userId was provided
+      if (userId != null) {
+        for (var song in matchingSongs) {
+          song.isFavorite = favoriteIds.contains(song.id);
+        }
+      }
+
+      // Sort by relevance (title matches first, then artist, then others)
+      matchingSongs.sort((a, b) {
+        // Primary sort: Title matches
+        final aTitleMatch = a.title.toLowerCase().contains(lowerQuery);
+        final bTitleMatch = b.title.toLowerCase().contains(lowerQuery);
+
+        if (aTitleMatch && !bTitleMatch) return -1;
+        if (!aTitleMatch && bTitleMatch) return 1;
+
+        // Secondary sort: Artist matches
+        final aArtistMatch = a.artist.toLowerCase().contains(lowerQuery);
+        final bArtistMatch = b.artist.toLowerCase().contains(lowerQuery);
+
+        if (aArtistMatch && !bArtistMatch) return -1;
+        if (!aArtistMatch && bArtistMatch) return 1;
+
+        // Third sort: Favorite count
+        return b.favoriteCount.compareTo(a.favoriteCount);
+      });
+
+      // Limit results
+      final limitedResults = matchingSongs.take(limit).toList();
+
+      print("✅ Song Repository: Found ${limitedResults.length} songs matching '$query'");
+      return limitedResults;
+    } catch (e) {
+      print("❌ Song Repository Error during search: $e");
+      return [];
+    }
+  }
 }

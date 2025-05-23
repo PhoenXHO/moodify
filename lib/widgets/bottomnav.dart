@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:emotion_music_player/views/home.dart';
 import 'package:emotion_music_player/views/playlists.dart';
 import 'package:emotion_music_player/views/chat.dart';
-import 'package:emotion_music_player/views/favorites.dart';
+import 'package:emotion_music_player/views/favorites.dart' as favorites_view;
 import 'package:emotion_music_player/views/settings.dart';
 import 'package:provider/provider.dart';
 
@@ -21,12 +21,11 @@ class BottomNav extends StatefulWidget {
 
 class _BottomNavState extends State<BottomNav> {
   int currentTabIndex = 0;
-
   final List<Widget> screens = const [
     HomeScreen(),
     PlaylistsScreen(),
     ChatScreen(),
-    FavoritesScreen(),
+    favorites_view.FavoritesScreen(),
     SettingsScreen()
   ];
   @override
@@ -46,18 +45,18 @@ class _BottomNavState extends State<BottomNav> {
             Positioned(
               left: 0,
               right: 0,
-              bottom: isChatScreen ? Dimensions.bottomNavHeight + 12.0 : 12, // Adjust bottom based on screen
+              bottom: isChatScreen ? Dimensions.bottomNavHeight + 18.0 : 18.0, // Increased bottom value
               child: MiniPlayer(isMinimized: isChatScreen), // Pass isMinimized
             ),
         ],
       ),
-      backgroundColor: AppColors.background, 
+      backgroundColor: AppColors.background,
       bottomNavigationBar: Container(
         width: 320, 
         height: Dimensions.bottomNavHeight, // Use Dimensions
-        margin: const EdgeInsets.only(bottom: 10, left: 16, right: 16), // Added horizontal margin for consistency
+        margin: const EdgeInsets.only(bottom: 24, left: 8, right: 8), // Increased bottom margin for better separation
         decoration: BoxDecoration(
-          color: Colors.black,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(15),
         ),
         child: Row(
@@ -88,7 +87,7 @@ class _BottomNavState extends State<BottomNav> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: Dimensions.iconSize), // Use Dimensions for icon size
+          Icon(icon, color: AppColors.textPrimary, size: Dimensions.iconSize), // Use Dimensions for icon size
           if (currentTabIndex == index)
             Container(
               width: 6,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
 class MessageBubble extends StatelessWidget {
   final String message;
@@ -12,36 +13,60 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
-        ),
-        margin: const EdgeInsets.symmetric(vertical: 8.0),
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        decoration: BoxDecoration(
-          color: isUserMessage ? Colors.white : Colors.deepPurple.shade100,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              offset: const Offset(0, 2),
-              blurRadius: 4,
-              color: Colors.black.withOpacity(0.1),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        mainAxisAlignment:
+            isUserMessage ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isUserMessage)
+            const CircleAvatar(
+              radius: 14,
+              backgroundColor: AppColors.primary,
+              child: Icon(Icons.music_note, color: Colors.white, size: 14),
             ),
-          ],
-          border: Border.all(
-            color: isUserMessage ? Colors.grey.shade300 : Colors.deepPurple.shade200,
-            width: 1,
+          if (!isUserMessage) const SizedBox(width: 8),
+          Container(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.75,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            decoration: BoxDecoration(
+              color: isUserMessage
+                  ? AppColors.surfaceLight
+                  : AppColors.primary.withOpacity(0.9),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(isUserMessage ? 16 : 4),
+                topRight: Radius.circular(isUserMessage ? 4 : 16),
+                bottomLeft: const Radius.circular(16),
+                bottomRight: const Radius.circular(16),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  offset: const Offset(0, 2),
+                  blurRadius: 4,
+                  color: Colors.black.withOpacity(0.2),
+                ),
+              ],
+            ),
+            child: Text(
+              message,
+              style: TextStyle(
+                color: isUserMessage ? AppColors.textPrimary : Colors.white,
+                fontSize: 16,
+                height: 1.4,
+              ),
+            ),
           ),
-        ),
-        child: Text(
-          message,
-          style: TextStyle(
-            color: isUserMessage ? Colors.black87 : Colors.black,
-            fontSize: 16,
-          ),
-        ),
+          if (isUserMessage) const SizedBox(width: 8),
+          if (isUserMessage)
+            const CircleAvatar(
+              radius: 14,
+              backgroundColor: AppColors.cardBackground,
+              child: Icon(Icons.person, color: AppColors.textSecondary, size: 14),
+            ),
+        ],
       ),
     );
   }

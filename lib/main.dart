@@ -54,11 +54,15 @@ class MyApp extends StatelessWidget {
       update: (context, chatViewModel, previousEmotionViewModel) => 
         previousEmotionViewModel ?? EmotionViewModel(chatViewModel),
     ),
-      ],
-      child: MaterialApp(
+      ],      child: MaterialApp(
           title: 'Moodify',
           theme: AppTheme.theme,
-          home: LoginScreen()),
+          initialRoute: '/',
+          routes: {
+            '/': (context) => const LoginScreen(),
+            '/login': (context) => const LoginScreen(),
+          },
+      ),
     );
   }
 }

@@ -5,10 +5,11 @@ import 'package:emotion_music_player/widgets/song_widget.dart';
 class SongListWidget extends StatelessWidget {
   final List<Song> songs;
   final bool isLoading;
-  final Function(Song) onFavoriteToggle; // Keep this as Function(Song) to match how we use it
+  final Function(Song) onFavoriteToggle;
   final bool allowReordering;
   final Function(int, int)? onReorder;
   final Function(String)? onRemove;
+  final bool isFavoritesContext; // Added: Flag for favorites screen context
 
   const SongListWidget({
     super.key,
@@ -18,6 +19,7 @@ class SongListWidget extends StatelessWidget {
     this.allowReordering = false,
     this.onReorder,
     this.onRemove,
+    this.isFavoritesContext = false, // Added: Default to false
   });
 
   @override
@@ -40,9 +42,10 @@ class SongListWidget extends StatelessWidget {
           return SongWidget(
             key: ValueKey(song.id), // Required for reordering
             song: song,
-            onFavoriteToggle: () => onFavoriteToggle(song), // Make sure we pass the entire song
+            onFavoriteToggle: () => onFavoriteToggle(song),
             inPlaylist: true,
             onRemove: onRemove != null ? () => onRemove!(song.id) : null,
+            isFavoritesContext: isFavoritesContext, // Added: Pass down the flag
           );
         },
       );
@@ -55,8 +58,9 @@ class SongListWidget extends StatelessWidget {
         final song = songs[index];
         return SongWidget(
           song: song,
-          onFavoriteToggle: () => onFavoriteToggle(song), // Wrap in a VoidCallback
-          inPlaylist: false,
+          onFavoriteToggle: () => onFavoriteToggle(song),
+          inPlaylist: false, // This was false, assuming it's correct for non-reorderable lists
+          isFavoritesContext: isFavoritesContext, // Added: Pass down the flag
         );
       },
     );

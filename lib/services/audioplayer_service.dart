@@ -122,6 +122,10 @@ class AudioPlayerService {
   Future<void> dispose() async {
     await _player.dispose();
   }
+
+  void clearCurrentSong() {
+    _currentSong = null;
+  }
 }
 
 // This class holds the position data of the audio player

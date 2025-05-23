@@ -11,6 +11,10 @@ class PlaylistsViewModel extends ChangeNotifier {
   final AuthRepository _authRepository = AuthRepository();
   final SongRepository _songRepository = SongRepository();
 
+  // Add tracking for current playlist
+  String? _currentPlaylistId;
+  String? get currentPlaylistId => _currentPlaylistId;
+
   SupabaseClient get supabase => Supabase.instance.client;
   // Add a getter or field for songs
   List<Song> _songs = []; // Replace with actual initialization logic
@@ -120,6 +124,7 @@ class PlaylistsViewModel extends ChangeNotifier {
   Future<void> loadPlaylistSongs(String playlistId) async {
     _isLoading = true;
     _errorMessage = null;
+    _currentPlaylistId = playlistId; // Track the current playlist ID
     notifyListeners();
 
     try {

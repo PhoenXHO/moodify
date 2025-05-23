@@ -1,5 +1,6 @@
 import 'package:emotion_music_player/models/song.dart';
 import 'package:emotion_music_player/theme/dimensions.dart';
+import 'package:emotion_music_player/theme/app_colors.dart';
 import 'package:emotion_music_player/viewmodels/playlists_viewmodel.dart';
 import 'package:emotion_music_player/widgets/snackbar.dart';
 import 'package:flutter/material.dart';
@@ -57,13 +58,13 @@ class _SongSelectionScreenState extends State<SongSelectionScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) {    return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Add Songs to Playlist'),
         centerTitle: true,
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.background,
+        foregroundColor: AppColors.textPrimary,
         actions: [
           TextButton(
             onPressed: _selectedSongs.isNotEmpty ? _addSelectedSongs : null,

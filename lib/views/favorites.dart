@@ -1,8 +1,12 @@
 import 'package:emotion_music_player/viewmodels/favorites_viewmodel.dart';
+import 'package:emotion_music_player/views/search.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:emotion_music_player/widgets/song_list_widget.dart';
 import 'package:emotion_music_player/widgets/snackbar.dart';
+import 'package:emotion_music_player/theme/app_colors.dart';
+import '../theme/dimensions.dart';
+import '../viewmodels/favorites_viewmodel.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -48,11 +52,26 @@ class _FavoritesScreenState extends State<FavoritesScreen> with AutomaticKeepAli
     super.build(context); // Required for AutomaticKeepAliveClientMixin
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('My Favorites'),
         centerTitle: true,
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.background,
+        foregroundColor: AppColors.textPrimary,
+        automaticallyImplyLeading: false, // Remove back button
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, size: Dimensions.iconSize),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SearchScreen(initialQuery: ''),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<FavoritesViewModel>(
         builder: (context, viewmodel, child) {
@@ -69,12 +88,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> with AutomaticKeepAli
                 isLoading: viewmodel.isLoading,
                 onFavoriteToggle: (song) {
                   viewmodel.toggleFavorite(song.id);
-                  // If SongWidget handles the toggle internally without providing the song back
-                  // You might need to access the current song's ID from within the SongWidget
-                  // or redesign how the callback works
-                }
-            ),
+                },
+                isFavoritesContext: true // Added: Set to true for FavoritesScreen
+                ),
           );
-        },      ),    );
+        },
+      ),
+    );
   }
 }

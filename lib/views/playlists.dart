@@ -4,6 +4,7 @@ import 'package:emotion_music_player/viewmodels/playlists_viewmodel.dart';
 import 'package:emotion_music_player/models/playlist.dart';
 import 'package:emotion_music_player/widgets/snackbar.dart';
 import 'package:emotion_music_player/views/playlist_contents.dart';
+import 'package:emotion_music_player/views/search.dart';
 import 'package:emotion_music_player/theme/app_colors.dart';
 import 'package:emotion_music_player/theme/dimensions.dart';
 import 'package:emotion_music_player/theme/text_styles.dart';
@@ -68,7 +69,10 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           TextButton(
             onPressed: () async {
@@ -87,7 +91,10 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
                 showSnackBar(context, 'Playlist created successfully');
               }
             },
-            child: const Text('Create'),
+            child: const Text(
+              'CREATE',
+              style: TextStyle(color: AppColors.primary),
+            ),
           ),
         ],
       ),
@@ -132,13 +139,24 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
     super.build(context);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
+      backgroundColor: AppColors.background,      appBar: AppBar(
         title: const Text('Playlists'),
         centerTitle: true,
         backgroundColor: AppColors.background,
         elevation: 0,
+        automaticallyImplyLeading: false, // Remove back button
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search, size: Dimensions.iconSize),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SearchScreen(initialQuery: ''),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.add, size: Dimensions.iconSize), // Use Dimensions
             onPressed: _createPlaylist,
@@ -243,45 +261,42 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
               ],
             ),
           ),
-          //! Fix this
-          // Action buttons
-          IconButton(
+          // Replace the IconButton with PopupMenuButton
+          PopupMenuButton<String>(
             icon: playlist.title == 'Anime Songs'
-                ? const Icon(Icons.graphic_eq, size: Dimensions.iconSize) // Use Dimensions
-                : const Icon(Icons.more_vert), // Skip 3-dots icon
-            onPressed: () => _showPlaylistOptions(context, playlist),
+                ? const Icon(Icons.graphic_eq, size: Dimensions.iconSize)
+                : const Icon(Icons.more_vert, size: Dimensions.iconSize),
+            onSelected: (value) {
+              if (value == 'edit') {
+                _editPlaylist(playlist);
+              } else if (value == 'delete') {
+                _deletePlaylist(playlist.id);
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, size: Dimensions.iconSize),
+                    SizedBox(width: 8.0),
+                    Text('Edit Playlist'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete, size: Dimensions.iconSize),
+                    SizedBox(width: 8.0),
+                    Text('Delete Playlist'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
-      ),
-    );
-  }
-
-  void _showPlaylistOptions(BuildContext context, Playlist playlist) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit, size: Dimensions.iconSize), // Use Dimensions
-              title: const Text('Edit Playlist'),
-              onTap: () {
-                Navigator.pop(context);
-                _editPlaylist(playlist);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete, size: Dimensions.iconSize), // Use Dimensions
-              title: const Text('Delete Playlist'),
-              onTap: () {
-                Navigator.pop(context);
-                _deletePlaylist(playlist.id);
-              },
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -10,10 +10,12 @@ class FavoritesViewModel extends ChangeNotifier {
   List<Song> _favoriteSongs = [];
   bool _isLoading = true;
   String? _errorMesssage;
+  String? _userId;
 
   List<Song> get favoriteSongs => _favoriteSongs;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMesssage;
+  String? get userId => _userId;
 
   Future<void> fetchFavorites() async {
     _isLoading = true;
@@ -29,6 +31,7 @@ class FavoritesViewModel extends ChangeNotifier {
         return;
       }
 
+      _userId = user.id;
       _favoriteSongs = await _songRepository.getFavorites(user.id);
     } catch (e) {
       _errorMesssage = 'Error fetching favorites: $e';
