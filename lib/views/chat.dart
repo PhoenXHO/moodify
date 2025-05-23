@@ -125,6 +125,13 @@ class _ChatScreenState extends State<ChatScreen> {
         elevation: 0,
         actions: [
           IconButton(
+            icon: const Icon(Icons.delete_outline, size: Dimensions.iconSize),
+            onPressed: () {
+              _showClearHistoryDialog();
+            },
+            tooltip: 'Clear chat history',
+          ),
+          IconButton(
             icon: const Icon(Icons.search, size: Dimensions.iconSize),
             onPressed: () {
               Navigator.push(
@@ -143,9 +150,10 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: Consumer<ChatViewModel>(
               builder: (context, viewModel, child) {
-                if (viewModel.isLoading) {
+                if (viewModel.isLoading && viewModel.messages.isEmpty) { // Show loader only on initial load when messages are empty
                   return const Center(child: CircularProgressIndicator());
-                }                if (viewModel.messages.isEmpty) {
+                }
+                if (viewModel.messages.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,

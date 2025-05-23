@@ -125,12 +125,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // Add _signOut method here if it's not already present or needs modification for dialog
   void _signOut() async {
-    await _authViewModel?.signOut();
-    if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: Text('Confirm Sign Out', style: TextStyle(color: AppColors.textPrimary)),
+          content: Text('Are you sure you want to sign out?', style: TextStyle(color: AppColors.textSecondary)),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+              onPressed: () {
+                Navigator.of(context).pop(false); // Return false when cancelled
+              },
+            ),
+            TextButton(
+              child: Text('Sign Out', style: TextStyle(color: AppColors.primary)),
+              onPressed: () {
+                Navigator.of(context).pop(true); // Return true when confirmed
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    // If the user confirmed, then proceed with sign out
+    if (confirmed == true) {
+      await _authViewModel?.signOut();
+      if (mounted) {
+        // Navigate to login screen and remove all previous routes
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     // final offlineViewModel = Provider.of<OfflineModeViewModel>(context);
@@ -144,6 +175,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         centerTitle: true,
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.textPrimary,
+        automaticallyImplyLeading: false, // Remove back button
         elevation: 0,
       ),
       body: Consumer<AuthViewModel>(

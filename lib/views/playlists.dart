@@ -80,15 +80,16 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
                 showSnackBar(context, 'Please enter a playlist name');
                 return;
               }
-
+              Navigator.pop(context); // Close dialog first
               final success =
                   await Provider.of<PlaylistsViewModel>(context, listen: false)
                       .createPlaylist(
                           nameController.text, descriptionController.text);
 
-              if (success == true && mounted) {
-                Navigator.pop(context);
-                showSnackBar(context, 'Playlist created successfully');
+              if (success != null && mounted) { // Check if success is not null (playlist object)
+                showSnackBar(context, 'Playlist \'${success.title}\' created successfully');
+              } else if (mounted) {
+                showSnackBar(context, 'Failed to create playlist. ${Provider.of<PlaylistsViewModel>(context, listen: false).errorMessage ?? ""}');
               }
             },
             child: const Text(
@@ -168,10 +169,12 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
           if (viewModel.errorMessage != null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               showSnackBar(context, viewModel.errorMessage!);
+              viewModel.clearError(); // Clear error after showing
             });
           }
 
-          if (viewModel.isLoading) {
+          // Show loader only on initial fetch or if playlists are null/empty during load
+          if (viewModel.isLoading && viewModel.playlists.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(
                 color: AppColors.primary,
@@ -339,15 +342,16 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
                 showSnackBar(context, 'Please enter a playlist name');
                 return;
               }
-
+              Navigator.pop(context); // Close dialog first
               final success =
                   await Provider.of<PlaylistsViewModel>(context, listen: false)
                       .updatePlaylist(playlist.id, nameController.text,
                           descriptionController.text);
 
               if (success && mounted) {
-                Navigator.pop(context);
                 showSnackBar(context, 'Playlist updated successfully');
+              } else if (mounted) {
+                showSnackBar(context, 'Failed to update playlist. ${Provider.of<PlaylistsViewModel>(context, listen: false).errorMessage ?? ""}');
               }
             },
             child: const Text('Update'),
@@ -370,13 +374,15 @@ class _PlaylistsScreenState extends State<PlaylistsScreen>
           ),
           TextButton(
             onPressed: () async {
+              Navigator.pop(context); // Close dialog first
               final success =
                   await Provider.of<PlaylistsViewModel>(context, listen: false)
                       .deletePlaylist(playlistId);
 
               if (success && mounted) {
-                Navigator.pop(context);
                 showSnackBar(context, 'Playlist deleted successfully');
+              } else if (mounted){
+                showSnackBar(context, 'Failed to delete playlist. ${Provider.of<PlaylistsViewModel>(context, listen: false).errorMessage ?? ""}');
               }
             },
             child: const Text('Delete'),

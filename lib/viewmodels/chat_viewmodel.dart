@@ -94,11 +94,17 @@ class ChatViewModel extends ChangeNotifier {
     final userMessage = text.trim();
     // Add user message immediately
     await _chatService.addMessage(_userId!, userMessage, isUserMessage: true);
-    _setLoading(true);
+
+    // Optionally, set a flag for AI thinking, if a more subtle indicator is desired later
+    // bool wasAiThinking = false; 
 
     try {
       // Prepare chat history context (using messages *before* the latest user message)
       final history = _getFormattedChatHistory();
+
+      // Indicate AI is working (e.g., for a subtle UI update if needed)
+      // wasAiThinking = true; 
+      // notifyListeners(); // If a specific flag for "AI thinking" is added
 
       // Get AI response
       final aiResponseString = await _aiService.getAiResponse(userMessage, history);
@@ -125,7 +131,10 @@ class ChatViewModel extends ChangeNotifier {
       );
        _originalUserRequest = null; // Clear original request on error
     } finally {
-      _setLoading(false);
+      // _setLoading(false); // Removed as _setLoading(true) was removed
+      // if (wasAiThinking) {
+        // Clear any "AI thinking" indicator
+      // }
     }
   }
 

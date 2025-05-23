@@ -176,6 +176,25 @@ class SongRepository {
     }
   }
 
+  Future<Song?> getSongById(String songId) async {
+    try {
+      final response = await _supabase
+          .from('songs')
+          .select()
+          .eq('id', songId)
+          .maybeSingle(); // Use maybeSingle to handle cases where the song might not exist
+
+      if (response == null) {
+        print("⚠️ Song Repository: No song found with ID: $songId");
+        return null;
+      }
+      return Song.fromJson(response);
+    } catch (e) {
+      print("❌ Song Repository Error fetching song by ID $songId: $e");
+      return null;
+    }
+  }
+
   // Search songs by title, artist, genres, or moods with user-specific favorite status
   Future<List<Song>> searchSongs(String query, {String? userId, int limit = 20}) async {
     try {

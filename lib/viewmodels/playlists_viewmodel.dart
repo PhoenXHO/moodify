@@ -30,7 +30,7 @@ class PlaylistsViewModel extends ChangeNotifier {
 
   // Fetch all playlists
   Future<void> fetchPlaylists() async {
-    _isLoading = true;
+    _isLoading = true; // This is for initial load, keep it.
     _errorMessage = null;
     notifyListeners();
 
@@ -54,37 +54,46 @@ class PlaylistsViewModel extends ChangeNotifier {
       print('Error in fetchPlaylists: $e'); // Debug error
       _errorMessage = 'Error fetching playlists: $e';
     } finally {
-      _isLoading = false;
+      _isLoading = false; // End of initial load.
       notifyListeners();
     }
   }
 
-  Future<Playlist> createPlaylist(String name, String description) async {
+  Future<Playlist?> createPlaylist(String name, String description) async { // Return type changed to Playlist? for error handling
+    // _isLoading = true; // Remove global loading for this action
+    // _errorMessage = null;
+    // notifyListeners();
+
     try {
-      // Create a new playlist
+      final user = _authRepository.getCurrentUser();
+      if (user == null) {
+        _errorMessage = 'You need to login to create playlists';
+        notifyListeners();
+        return null;
+      }
       final response = await supabase
           .from('playlists')
           .insert({
             'title': name,
             'description': description,
-            'user_id': supabase.auth.currentUser!.id,
+            'user_id': user.id, // Use user.id directly
           })
           .select()
           .single();
 
-      // Create a Playlist object
       final playlist = Playlist.fromJson(response);
-
-      // Add to local list
       _playlists.add(playlist);
-      notifyListeners();
-
+      notifyListeners(); // Update UI without global loader
       return playlist;
     } catch (e) {
       _errorMessage = 'Error creating playlist: $e';
-      notifyListeners();
-      throw e;
+      notifyListeners(); // Show error without global loader
+      return null; // Return null on error
     }
+    // finally {
+    //   _isLoading = false; // Remove global loading for this action
+    //   notifyListeners();
+    // }
   }
 
   // Create playlist with songs (for AI-generated playlists)
@@ -122,9 +131,9 @@ class PlaylistsViewModel extends ChangeNotifier {
 
   // Load songs for a specific playlist
   Future<void> loadPlaylistSongs(String playlistId) async {
-    _isLoading = true;
+    _isLoading = true; // This is for initial load of a specific playlist's content, keep it.
     _errorMessage = null;
-    _currentPlaylistId = playlistId; // Track the current playlist ID
+    _currentPlaylistId = playlistId;
     notifyListeners();
 
     try {
@@ -149,66 +158,109 @@ class PlaylistsViewModel extends ChangeNotifier {
     } catch (e) {
       _errorMessage = 'Error loading playlist songs: $e';
     } finally {
-      _isLoading = false;
+      _isLoading = false; // End of specific playlist load.
       notifyListeners();
     }
-  }
-
-  // Get songs for a specific playlist
+  }  // Get songs for a specific playlist
   List<Song> getPlaylistSongs(String playlistId) {
-    final playlist = _playlists.firstWhere((p) => p.id == playlistId);
-    return playlist.songs;
+    try {
+      final playlist = _playlists.firstWhere((p) => p.id == playlistId);
+      return playlist.songs;
+    } catch (e) {
+      // If playlist is not found, return an empty list
+      print('Playlist with ID $playlistId not found in playlists list');
+      // Don't call loadPlaylistSongs directly from here as it might be during build
+      // Schedule it for after the current build completes
+      Future.microtask(() => loadPlaylistSongs(playlistId));
+      return [];
+    }
   }
 
   // Update playlist details
   Future<bool> updatePlaylist(
       String playlistId, String title, String? description) async {
+    // _isLoading = true; // Remove global loading
+    // _errorMessage = null;
+    // notifyListeners();
+
     try {
       await _playlistRepository.updatePlaylist(
         playlistId: playlistId,
         title: title,
         description: description,
       );
-
-      await fetchPlaylists();
+      // Instead of full fetch, update local list and notify
+      final index = _playlists.indexWhere((p) => p.id == playlistId);
+      if (index != -1) {
+        _playlists[index] = _playlists[index].copyWith(title: title, description: description);
+      }
+      notifyListeners(); // Update UI without global loader
       return true;
     } catch (e) {
       _errorMessage = 'Error updating playlist: $e';
-      notifyListeners();
+      notifyListeners(); // Show error without global loader
       return false;
     }
+    // finally {
+    //   _isLoading = false; // Remove global loading
+    //   notifyListeners();
+    // }
   }
 
   // Delete playlist
   Future<bool> deletePlaylist(String playlistId) async {
+    // _isLoading = true; // Remove global loading
+    // _errorMessage = null;
+    // notifyListeners();
+
     try {
       await _playlistRepository.deletePlaylist(playlistId);
       _playlists.removeWhere((p) => p.id == playlistId);
-      notifyListeners();
+      notifyListeners(); // Update UI without global loader
       return true;
     } catch (e) {
       _errorMessage = 'Error deleting playlist: $e';
-      notifyListeners();
+      notifyListeners(); // Show error without global loader
       return false;
     }
+    // finally {
+    //   _isLoading = false; // Remove global loading
+    //   notifyListeners();
+    // }
   }
 
   // Remove song from playlist
   Future<bool> removeSongFromPlaylist(String playlistId, String songId) async {
+    // _isLoading = true; // Remove global loading for this action
+    // _errorMessage = null;
+    // notifyListeners();
+
     try {
       await _playlistRepository.removeSongFromPlaylist(playlistId, songId);
-      await loadPlaylistSongs(playlistId);
+      // Instead of full reload, update the specific playlist's song list
+      final playlistIndex = _playlists.indexWhere((p) => p.id == playlistId);
+      if (playlistIndex != -1) {
+        final updatedSongs = List<Song>.from(_playlists[playlistIndex].songs)
+          ..removeWhere((s) => s.id == songId);
+        _playlists[playlistIndex] = _playlists[playlistIndex].copyWith(songs: updatedSongs);
+      }
+      notifyListeners(); // Update UI without global loader
       return true;
     } catch (e) {
       _errorMessage = 'Error removing song: $e';
-      notifyListeners();
+      notifyListeners(); // Show error without global loader
       return false;
     }
+    // finally {
+    //   _isLoading = false; // Remove global loading for this action
+    //   notifyListeners();
+    // }
   }
 
   // Reorder songs in playlist
   Future<void> reorderSongs(
       String playlistId, int oldIndex, int newIndex) async {
+    // No global _isLoading change here, reordering should be quick and UI updates locally.
     try {
       final playlist = _playlists.firstWhere((p) => p.id == playlistId);
       final songs = playlist.songs;
@@ -252,48 +304,85 @@ class PlaylistsViewModel extends ChangeNotifier {
 
   // Add a single song to playlist
   Future<bool> addSongToPlaylist(String playlistId, String songId) async {
+    // _isLoading = true; // Remove global loading
+    // _errorMessage = null;
+    // notifyListeners();
+
     try {
+      // Fetch the song details first to add to the local list
+      final song = await _songRepository.getSongById(songId); 
+      if (song == null) {
+        _errorMessage = 'Error: Song not found to add to playlist.';
+        notifyListeners();
+        return false;
+      }
+
       await supabase.from('playlist_songs').insert({
         'playlist_id': playlistId,
         'song_id': songId,
         'position': getPlaylistSongs(playlistId).length, // Add at the end
       });
 
-      // Refresh playlist songs
-      await loadPlaylistSongs(playlistId);
+      // Update local playlist's song list
+      final playlistIndex = _playlists.indexWhere((p) => p.id == playlistId);
+      if (playlistIndex != -1) {
+        final updatedSongs = List<Song>.from(_playlists[playlistIndex].songs)..add(song);
+        _playlists[playlistIndex] = _playlists[playlistIndex].copyWith(songs: updatedSongs);
+      }
+      notifyListeners(); // Update UI without global loader
       return true;
     } catch (e) {
       _errorMessage = 'Error adding song to playlist: $e';
-      notifyListeners();
+      notifyListeners(); // Show error without global loader
       return false;
     }
+    // finally {
+    //   _isLoading = false; // Remove global loading
+    //   notifyListeners();
+    // }
   }
 
   Future<void> addSongsToPlaylist(
       String playlistId, List<String> songIds) async {
+    // _isLoading = true; // Remove global loading
+    // _errorMessage = null;
+    // notifyListeners();
+
     try {
       // Get current position
       final currentPosition = getPlaylistSongs(playlistId).length;
+      List<Song> addedSongsDetails = [];
 
       // Create entries for each song
-      final entries = songIds.asMap().entries.map((entry) {
+      final entries = await Future.wait(songIds.asMap().entries.map((entry) async {
+        final songDetail = await _songRepository.getSongById(entry.value);
+        if (songDetail != null) addedSongsDetails.add(songDetail);
         return {
           'playlist_id': playlistId,
           'song_id': entry.value,
           'position': currentPosition + entry.key,
         };
-      }).toList();
+      }).toList());
 
       // Add all songs at once
       await supabase.from('playlist_songs').insert(entries);
 
-      // Refresh playlist songs
-      await loadPlaylistSongs(playlistId);
+      // Update local playlist's song list
+      final playlistIndex = _playlists.indexWhere((p) => p.id == playlistId);
+      if (playlistIndex != -1) {
+        final updatedSongs = List<Song>.from(_playlists[playlistIndex].songs)..addAll(addedSongsDetails);
+        _playlists[playlistIndex] = _playlists[playlistIndex].copyWith(songs: updatedSongs);
+      }
+      notifyListeners(); // Update UI without global loader
     } catch (e) {
       _errorMessage = 'Error adding songs to playlist: $e';
-      notifyListeners();
-      throw e;
+      notifyListeners(); // Show error without global loader
+      throw e; // Re-throw for the caller to handle if needed
     }
+    // finally {
+    //   _isLoading = false; // Remove global loading
+    //   notifyListeners();
+    // }
   }
 
   void clearError() {

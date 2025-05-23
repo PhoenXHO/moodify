@@ -54,7 +54,7 @@ class _BottomNavState extends State<BottomNav> {
       bottomNavigationBar: Container(
         width: 320, 
         height: Dimensions.bottomNavHeight, // Use Dimensions
-        margin: const EdgeInsets.only(bottom: 24, left: 8, right: 8), // Increased bottom margin for better separation
+        margin: const EdgeInsets.only(bottom: 32, left: 8, right: 8), // Increased bottom margin for better separation
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(15),

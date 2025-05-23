@@ -26,14 +26,27 @@ class PlaylistDetailScreen extends StatefulWidget {
 class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
   FavoritesViewModel?
       _favoritesViewModel; // Store a reference to the FavoritesViewModel
-
   @override
   void initState() {
     super.initState();
-    // Load playlist songs when screen opens
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<PlaylistsViewModel>(context, listen: false)
-          .loadPlaylistSongs(widget.playlist.id);
+    // Load playlist songs when screen opens, with error handling
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final viewModel = Provider.of<PlaylistsViewModel>(context, listen: false);
+        
+        // First fetch all playlists to make sure we have the playlist in the view model
+        await viewModel.fetchPlaylists();
+        
+        // Then load this specific playlist's songs
+        await viewModel.loadPlaylistSongs(widget.playlist.id);
+        
+        print('Successfully loaded playlist ${widget.playlist.id} with songs');
+      } catch (e) {
+        print('Error loading playlist: $e');
+        if (mounted) {
+          showSnackBar(context, 'Error loading playlist: Please try again');
+        }
+      }
     });
   }
 
@@ -79,21 +92,25 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             onPressed: _deletePlaylist,
           ),
         ],
-      ),
-      body: Consumer<PlaylistsViewModel>(
+      ),      body: Consumer<PlaylistsViewModel>(
         builder: (context, viewModel, child) {
-          if (viewModel.errorMessage != null) {
+          if (viewModel.errorMessage != null && viewModel.currentPlaylistId == widget.playlist.id) { // Check if error is for current playlist
             WidgetsBinding.instance.addPostFrameCallback((_) {
               showSnackBar(context, viewModel.errorMessage!);
               viewModel.clearError();
             });
           }
-
-          if (viewModel.isLoading) {
+          
+          // Show loader when loading songs for *this specific* playlist
+          if (viewModel.isLoading && viewModel.currentPlaylistId == widget.playlist.id) {
             return const Center(child: CircularProgressIndicator());
           }
-
-          final songs = viewModel.getPlaylistSongs(widget.playlist.id);
+          
+          // Get songs safely outside the build method's direct flow
+          // Use the cached playlist from the view model directly to avoid triggering loads during build
+          final songs = viewModel.playlists
+              .firstWhere((p) => p.id == widget.playlist.id, 
+                  orElse: () => widget.playlist).songs;
 
           return Column(
             children: [
@@ -125,11 +142,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                       ),
                   ],
                 ),
-              ),
-              // Songs list with reordering
+              ),              // Songs list with reordering
               Expanded(
                 child: SongListWidget(
-                  songs: viewModel.getPlaylistSongs(widget.playlist.id),
+                  songs: songs, // Use the songs we already safely retrieved above
                   isLoading: false, // We already checked loading state above
                   onFavoriteToggle: (Song song) {
                     Provider.of<FavoritesViewModel>(context, listen: false)
@@ -193,15 +209,21 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             ),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               final viewModel =
                   Provider.of<PlaylistsViewModel>(context, listen: false);
-              viewModel.updatePlaylist(
+              Navigator.of(context).pop(); // Close dialog first
+              final success = await viewModel.updatePlaylist(
                 widget.playlist.id,
                 nameController.text,
                 descriptionController.text,
               );
-              Navigator.of(context).pop();
+              if (success && mounted) {
+                showSnackBar(context, 'Playlist updated successfully');
+                // No need to manually update widget.playlist.title, viewmodel handles state
+              } else if (mounted) {
+                showSnackBar(context, 'Failed to update playlist. ${viewModel.errorMessage ?? ""}');
+              }
             },
             child: const Text(
               'SAVE',
@@ -232,13 +254,15 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             onPressed: () async {
               final viewModel =
                   Provider.of<PlaylistsViewModel>(context, listen: false);
+              Navigator.of(context).pop(); // Close dialog first
               final success =
                   await viewModel.deletePlaylist(widget.playlist.id);
 
               if (success && mounted) {
-                Navigator.of(context).pop(); // Close dialog
                 Navigator.of(context).pop(); // Return to playlists screen
                 showSnackBar(context, 'Playlist deleted successfully');
+              } else if (mounted) {
+                showSnackBar(context, 'Failed to delete playlist. ${viewModel.errorMessage ?? ""}');
               }
             },
             child: const Text(
@@ -291,20 +315,15 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     if (confirmed != true) return;
     
     // Continue with removal if confirmed
+    // No dialog pop here, it was for confirmation
     final success =
         await viewModel.removeSongFromPlaylist(widget.playlist.id, songId);
 
-    if (success) {
-      // Refresh the playlist songs to reflect the removal
-      viewModel.loadPlaylistSongs(widget.playlist.id);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Song removed from playlist')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to remove song from playlist')),
-      );
+    if (success && mounted) {
+      // viewModel.loadPlaylistSongs(widget.playlist.id); // ViewModel updates list internally
+      showSnackBar(context, 'Song removed from playlist');
+    } else if (mounted) {
+      showSnackBar(context, 'Failed to remove song. ${viewModel.errorMessage ?? ""}');
     }
   }
 
@@ -319,11 +338,13 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     );
   }
 
-  void addSongToPlaylist(String playlistId, String songId) {
+  void addSongToPlaylist(String playlistId, String songId) async { // Made async
     final viewModel = Provider.of<PlaylistsViewModel>(context, listen: false);
-    viewModel.addSongToPlaylist(playlistId, songId);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: const Text('Song added to playlist')),
-    );
+    final success = await viewModel.addSongToPlaylist(playlistId, songId); // Await the operation
+    if (success && mounted) {
+      showSnackBar(context, 'Song added to playlist');
+    } else if (mounted) {
+      showSnackBar(context, 'Failed to add song. ${viewModel.errorMessage ?? ""}');
+    }
   }
 }

@@ -31,22 +31,82 @@ class SongWidget extends StatefulWidget {
 
 class _SongWidgetState extends State<SongWidget> {
   final supabase = Supabase.instance.client;
+  late FavoritesViewModel _favoritesViewModel;
+  bool _isFavorite = false;
+  bool _isTogglingFavorite = false;
 
-  Future<void> _toggleFavorite() async {
-    try {
-      widget.onFavoriteToggle(); // Call without parameters
-    } catch (e) {
-      if (mounted) {
-        showSnackBar(context, 'Error toggling favorite: $e');
+  @override
+  void initState() {
+    super.initState();
+    _isFavorite = widget.song.isFavorite;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _favoritesViewModel = Provider.of<FavoritesViewModel>(context, listen: false);
+    _isFavorite = widget.song.isFavorite;
+  }
+
+  @override
+  void didUpdateWidget(SongWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the song prop's favorite status has changed since the last build,
+    // and our local _isFavorite state is not already reflecting this new status,
+    // then update _isFavorite and call setState.
+    if (oldWidget.song.isFavorite != widget.song.isFavorite) {
+      if (_isFavorite != widget.song.isFavorite) {
+        setState(() {
+          _isFavorite = widget.song.isFavorite;
+        });
       }
     }
   }
 
+  Future<void> _toggleFavorite() async {
+    if (_isTogglingFavorite) return; // Prevent multiple rapid taps
+    
+    try {
+      _isTogglingFavorite = true;
+      // Immediately update UI for better responsiveness
+      setState(() {
+        _isFavorite = !_isFavorite;
+      });
+      
+      // Call the parent callback
+      widget.onFavoriteToggle();
+    } catch (e) {
+      // Revert UI state if there's an error
+      setState(() {
+        _isFavorite = !_isFavorite;
+      });
+      if (mounted) {
+        showSnackBar(context, 'Error toggling favorite: $e');
+      }
+    } finally {
+      _isTogglingFavorite = false;
+    }
+  }
+  
+  // Check if song is in a specific playlist
+  Future<bool> _isSongInPlaylist(String playlistId) async {
+    final playlistsViewModel = Provider.of<PlaylistsViewModel>(context, listen: false);
+    // First, force load the songs for this playlist if they're not loaded yet
+    final songs = playlistsViewModel.getPlaylistSongs(playlistId);
+    if (songs.isEmpty) {
+      await playlistsViewModel.loadPlaylistSongs(playlistId);
+    }
+    
+    // Now check if our song is in this playlist
+    final updatedSongs = playlistsViewModel.getPlaylistSongs(playlistId);
+    return updatedSongs.any((song) => song.id == widget.song.id);
+  }
+  
   @override
   Widget build(BuildContext context) {
     // Updated: Determine if the song should appear disabled
     final bool shouldAppearDisabled =
-        widget.isFavoritesContext && !widget.song.isFavorite;
+        widget.isFavoritesContext && !_isFavorite;
     final playerViewModel =
         Provider.of<PlayerViewModel>(context, listen: false);
 
@@ -81,8 +141,8 @@ class _SongWidgetState extends State<SongWidget> {
             // Always show the favorite button
             IconButton(
               icon: Icon(
-                widget.song.isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: widget.song.isFavorite ? AppColors.primary : null,
+                _isFavorite ? Icons.favorite : Icons.favorite_border,
+                color: _isFavorite ? AppColors.primary : null,
               ),
               onPressed: _toggleFavorite,
             ),
@@ -95,21 +155,26 @@ class _SongWidgetState extends State<SongWidget> {
                 },
               ),
 
-            // More options menu for adding to playlist
-            if (!widget.inPlaylist)
-              PopupMenuButton(
-                icon: const Icon(Icons.more_vert),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'add_to_playlist',
-                    child: const Text('Add to playlist'),
-                  ),
-                ],                onSelected: (value) {
-                  if (value == 'add_to_playlist') {
-                    _showPlaylistSelectionBottomSheet(context);
-                  }
-                },
-              ),
+            // More options menu for adding to playlist (now shown both inside and outside playlists)
+            PopupMenuButton(
+              icon: const Icon(Icons.more_vert),
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'add_to_playlist',
+                  child: const Text('Add to playlist'),
+                ),
+              ],
+              onSelected: (value) {
+                if (value == 'add_to_playlist') {
+                  // Defer showing the bottom sheet until after the current build cycle
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      _showPlaylistSelectionBottomSheet(context);
+                    }
+                  });
+                }
+              },
+            ),
           ],
         ),
         onTap: () async {
@@ -188,7 +253,7 @@ class _SongWidgetState extends State<SongWidget> {
 
                 // Add the current song to the new playlist
                 await playlistsViewModel.addSongToPlaylist(
-                  playlist.id,
+                  playlist!.id,
                   widget.song.id,
                 );
 
@@ -219,7 +284,7 @@ class _SongWidgetState extends State<SongWidget> {
   // Show playlist selection bottom sheet
   void _showPlaylistSelectionBottomSheet(BuildContext context) {
     final playlistsViewModel = Provider.of<PlaylistsViewModel>(context, listen: false);
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -248,10 +313,14 @@ class _SongWidgetState extends State<SongWidget> {
                   
                   Flexible(
                     child: FutureBuilder(
-                      future: playlistsViewModel.fetchPlaylists(),
+                      future: Future.microtask(() => playlistsViewModel.fetchPlaylists()), // Ensure fetchPlaylists is called after the current build phase
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState == ConnectionState.waiting && playlistsViewModel.playlists.isEmpty) { // Show loader only if playlists are not yet loaded
                           return const Center(child: CircularProgressIndicator());
+                        }
+
+                        if (snapshot.hasError) {
+                          return Center(child: Text('Error fetching playlists: ${snapshot.error}'));
                         }
                         
                         if (playlistsViewModel.playlists.isEmpty) {
@@ -270,53 +339,70 @@ class _SongWidgetState extends State<SongWidget> {
                           itemCount: playlistsViewModel.playlists.length,
                           itemBuilder: (context, index) {
                             final playlist = playlistsViewModel.playlists[index];
+                            // Check if the current song already exists in this playlist
+                            final songsInThisPlaylist = playlistsViewModel.getPlaylistSongs(playlist.id);
+                            final songExistsInPlaylist = songsInThisPlaylist.any((s) => s.id == widget.song.id);
+
                             return ListTile(
                               title: Text(
-                                playlist.title,
-                                style: TextStyle(color: AppColors.textPrimary),
+                                playlist.title, // Display playlist title
+                                style: TextStyle(
+                                  color: songExistsInPlaylist 
+                                    ? AppColors.textSecondary.withOpacity(0.4) // More opacity reduction
+                                    : AppColors.textPrimary,
+                                  fontStyle: songExistsInPlaylist 
+                                    ? FontStyle.italic // Make text italic for existing items
+                                    : FontStyle.normal,
+                                ),
                               ),
                               subtitle: playlist.description != null && playlist.description!.isNotEmpty
                                   ? Text(
                                       playlist.description!,
-                                      style: TextStyle(color: AppColors.textSecondary),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: songExistsInPlaylist 
+                                          ? AppColors.textSecondary.withOpacity(0.4) // More opacity reduction
+                                          : AppColors.textSecondary,
+                                        fontStyle: songExistsInPlaylist 
+                                          ? FontStyle.italic // Make text italic for existing items
+                                          : FontStyle.normal,
+                                      ),
                                     )
                                   : null,
-                              leading: Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  color: AppColors.cardBackground,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  Icons.music_note,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                              onTap: () async {
-                                try {
-                                  await playlistsViewModel.addSongToPlaylist(
-                                    playlist.id,
-                                    widget.song.id,
-                                  );
-                                  
-                                  if (context.mounted) {
-                                    Navigator.pop(context);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Added "${widget.song.title}" to "${playlist.title}"'),
-                                      ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (context.mounted) {
-                                    Navigator.pop(context);
-                                    showSnackBar(context, 'Error adding song to playlist: $e');
-                                  }
-                                }
-                              },
+                              // Add trailing icon to indicate song is already in playlist
+                              trailing: songExistsInPlaylist 
+                                ? const Icon(
+                                    Icons.check_circle,
+                                    color: AppColors.textSecondary,
+                                    size: 20,
+                                  ) 
+                                : null,
+                              // Apply tileColor to visually separate disabled items
+                              tileColor: songExistsInPlaylist 
+                                ? AppColors.inactive.withOpacity(0.3)
+                                : null,
+                              enabled: !songExistsInPlaylist, // Disable if song already in playlist
+                              onTap: songExistsInPlaylist
+                                ? null // Do nothing if song is already in the playlist
+                                : () async {
+                                    Navigator.pop(context); // Close bottom sheet first
+                                    try {
+                                      await playlistsViewModel.addSongToPlaylist(
+                                        playlist.id,
+                                        widget.song.id,
+                                      );
+                                      // Use current context for snackbar
+                                      showSnackBar(
+                                        this.context, // Use SongWidget's context
+                                        '"${widget.song.title}" added to "${playlist.title}"',
+                                      );
+                                    } catch (e) {
+                                      // Use current context for snackbar
+                                      showSnackBar(
+                                        this.context, // Use SongWidget's context
+                                        'Error adding song: $e',
+                                      );
+                                    }
+                                  },
                             );
                           },
                         );
