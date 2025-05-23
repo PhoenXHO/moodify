@@ -10,7 +10,9 @@ import '../viewmodels/player_viewmodel.dart';
 import '../widgets/message_bubble.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+  final String? initialPrompt;
+  
+  const ChatScreen({super.key, this.initialPrompt});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -21,7 +23,6 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   late ChatViewModel _chatViewModel;
   int _previousMessageCount = 0;
-
   @override
   void initState() {
     super.initState();
@@ -31,6 +32,16 @@ class _ChatScreenState extends State<ChatScreen> {
     // Initialize chat history
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _chatViewModel.initChat();
+      
+      // If an initial prompt was provided, send it automatically
+      if (widget.initialPrompt != null && widget.initialPrompt!.isNotEmpty) {
+        // Short delay to allow chat to initialize
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (mounted) {
+          _messageController.text = widget.initialPrompt!;
+          _handleSendPressed();
+        }
+      }
     });
 
     // Listen for changes to the message list

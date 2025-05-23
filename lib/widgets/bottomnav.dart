@@ -10,6 +10,7 @@ import '../theme/app_colors.dart';
 import '../theme/dimensions.dart';
 import '../viewmodels/favorites_viewmodel.dart';
 import '../viewmodels/player_viewmodel.dart';
+import '../viewmodels/navigation_viewmodel.dart';
 import 'mini_player.dart';
 
 class BottomNav extends StatefulWidget {
@@ -19,26 +20,29 @@ class BottomNav extends StatefulWidget {
   State<BottomNav> createState() => _BottomNavState();
 }
 
-class _BottomNavState extends State<BottomNav> {
-  int currentTabIndex = 0;
-  final List<Widget> screens = const [
-    HomeScreen(),
-    PlaylistsScreen(),
-    ChatScreen(),
-    favorites_view.FavoritesScreen(),
-    SettingsScreen()
-  ];
-  @override
+class _BottomNavState extends State<BottomNav> {@override
   Widget build(BuildContext context) {
     // Listen to player changes explicitly
     final playerViewModel = Provider.of<PlayerViewModel>(context);
+    final navigationViewModel = Provider.of<NavigationViewModel>(context);
+    
+    final currentTabIndex = navigationViewModel.currentTabIndex;
     final isChatScreen = currentTabIndex == 2;
+
+    // Create screens dynamically to handle chat initial prompt
+    final List<Widget> dynamicScreens = [
+      HomeScreen(),
+      PlaylistsScreen(),
+      ChatScreen(initialPrompt: navigationViewModel.chatInitialPrompt),
+      favorites_view.FavoritesScreen(),
+      SettingsScreen()
+    ];
 
     return Scaffold(
       body: Stack(
         children: [
           // Main content area
-          screens[currentTabIndex],
+          dynamicScreens[currentTabIndex],
 
           // Mini player - positioned above bottom nav
           if (playerViewModel.currentSong != null)
@@ -72,33 +76,39 @@ class _BottomNavState extends State<BottomNav> {
       ),
     );
   }
-
   Widget _navItem(IconData icon, int index) {
     return GestureDetector(
       onTap: () {
+        final navigationViewModel = Provider.of<NavigationViewModel>(context, listen: false);
+        final currentTabIndex = navigationViewModel.currentTabIndex;
+        
         if (currentTabIndex == 3 && index != 3) {
           // Clean up unfavorited songs when navigating away from the Favorites screen
           Provider.of<FavoritesViewModel>(context, listen: false).cleanupUnfavoritedSongs();
         }
-        setState(() {
-          currentTabIndex = index;
-        });
+        
+        navigationViewModel.setTabIndex(index);
       },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: AppColors.textPrimary, size: Dimensions.iconSize), // Use Dimensions for icon size
-          if (currentTabIndex == index)
-            Container(
-              width: 6,
-              height: 6,
-              margin: EdgeInsets.only(top: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-              ),
-            ),
-        ],
+      child: Consumer<NavigationViewModel>(
+        builder: (context, navigationViewModel, child) {
+          final currentTabIndex = navigationViewModel.currentTabIndex;
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: AppColors.textPrimary, size: Dimensions.iconSize), // Use Dimensions for icon size
+              if (currentTabIndex == index)
+                Container(
+                  width: 6,
+                  height: 6,
+                  margin: EdgeInsets.only(top: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:emotion_music_player/repositories/song_repository.dart';
 import 'package:emotion_music_player/repositories/playlist_repository.dart';
 import 'package:emotion_music_player/repositories/auth_repository.dart';
 import 'package:emotion_music_player/viewmodels/player_viewmodel.dart';
+import 'package:emotion_music_player/viewmodels/navigation_viewmodel.dart';
 import 'package:emotion_music_player/views/search.dart';
 import 'package:emotion_music_player/views/playlist_contents.dart';
 import 'package:emotion_music_player/widgets/song_widget.dart';
@@ -111,7 +112,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       });
     }
   }
-
   void _navigateToSearch(String initialQuery) {
     Navigator.push(
       context,
@@ -119,7 +119,36 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         builder: (context) => SearchScreen(initialQuery: initialQuery),
       ),
     );
-  }  void _openPlaylist(Playlist playlist) {
+  }  void _navigateToMoodChat(String mood) {
+    // Format the message to be more conversational
+    String prompt = "";
+    switch(mood.toLowerCase()) {
+      case "happy":
+        prompt = "Create a playlist with upbeat and happy songs";
+        break;
+      case "energetic":
+        prompt = "Create an energetic playlist to boost my workout";
+        break;
+      case "calm":
+        prompt = "I need a playlist with calm and relaxing songs";
+        break;
+      case "sad":
+        prompt = "Make me a playlist with emotional and melancholic songs";
+        break;
+      case "romantic":
+        prompt = "Create a romantic playlist for a special evening";
+        break;
+      case "focus":
+        prompt = "I need a playlist to help me focus and concentrate on work";
+        break;
+      default:
+        prompt = "Create a playlist for $mood mood";
+    }
+    
+    // Use NavigationViewModel to navigate to chat with prompt instead of Navigator.push
+    final navigationViewModel = Provider.of<NavigationViewModel>(context, listen: false);
+    navigationViewModel.navigateToChatWithPrompt(prompt);
+  }void _openPlaylist(Playlist playlist) {
     // Debug log to check playlist data
     print('Opening playlist: ${playlist.id}, ${playlist.title}, Songs count: ${playlist.songs.length}');
     
@@ -255,11 +284,10 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                         scrollDirection: Axis.horizontal,
                         itemCount: _moods.length,
                         itemBuilder: (context, index) {
-                          final mood = _moods[index];
-                          return Padding(
+                          final mood = _moods[index];                          return Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: InkWell(
-                              onTap: () => _navigateToSearch(mood['name']),
+                              onTap: () => _navigateToMoodChat(mood['name']),
                               child: Container(
                                 width: 80,
                                 decoration: BoxDecoration(

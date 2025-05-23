@@ -4,6 +4,7 @@ import 'package:emotion_music_player/viewmodels/auth_viewmodel.dart';
 import 'package:emotion_music_player/viewmodels/chat_viewmodel.dart';
 import 'package:emotion_music_player/viewmodels/favorites_viewmodel.dart';
 import 'package:emotion_music_player/viewmodels/player_viewmodel.dart';
+import 'package:emotion_music_player/viewmodels/navigation_viewmodel.dart';
 import 'package:emotion_music_player/views/auth/login.dart';
 import 'package:emotion_music_player/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -39,14 +40,14 @@ class MyApp extends StatelessWidget {
 
   // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
+  Widget build(BuildContext context) {    return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AuthViewModel()),
         ChangeNotifierProvider(create: (context) => FavoritesViewModel()),
         ChangeNotifierProvider(create: (context) => PlayerViewModel()),
         ChangeNotifierProvider(create: (context) => PlaylistsViewModel()),
         ChangeNotifierProvider(create: (context) => ChatViewModel()),
+        ChangeNotifierProvider(create: (context) => NavigationViewModel()),
          ChangeNotifierProxyProvider<ChatViewModel, EmotionViewModel>(
       create: (context) => EmotionViewModel(
         Provider.of<ChatViewModel>(context, listen: false),
@@ -54,7 +55,7 @@ class MyApp extends StatelessWidget {
       update: (context, chatViewModel, previousEmotionViewModel) => 
         previousEmotionViewModel ?? EmotionViewModel(chatViewModel),
     ),
-      ],      child: MaterialApp(
+      ],child: MaterialApp(
           title: 'Moodify',
           theme: AppTheme.theme,
           initialRoute: '/',
