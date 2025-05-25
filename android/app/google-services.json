@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "337811894536",
-    "project_id": "emotionmusicplayer-12734",
-    "storage_bucket": "emotionmusicplayer-12734.firebasestorage.app"
+    "project_number": "257276567633",
+    "project_id": "moodify-460800",
+    "storage_bucket": "moodify-460800.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:337811894536:android:d66e1d0573b28562837cbd",
+        "mobilesdk_app_id": "1:257276567633:android:fcf53ac7380936bd4bd870",
         "android_client_info": {
           "package_name": "com.example.emotion_music_player"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "257276567633-mukhosga776n6ba136bsputq93ieafeo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.emotion_music_player",
+            "certificate_hash": "f7aede366bc13730a1f076d31ac0424f54fef1bf"
+          }
+        },
+        {
+          "client_id": "257276567633-tfvubd6d9654l87h03sufsf5nr4s7oii.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyBAmyegQYh4LXrymaHzA0VuGaJ5iU4m7Mw"
+          "current_key": "AIzaSyDEQgqN3ueRFnP94mZ6OCsEZnLHB4ch0RI"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "257276567633-n423n4rbj1g027oolshtig0pmfirr7fn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
