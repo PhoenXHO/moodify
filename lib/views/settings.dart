@@ -136,13 +136,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           content: Text('Are you sure you want to sign out?', style: TextStyle(color: AppColors.textSecondary)),
           actions: <Widget>[
             TextButton(
-              child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+              child: Text(
+                  'CANCEL',
+                  style: TextStyle(color: AppColors.textSecondary),
+              ),
               onPressed: () {
                 Navigator.of(context).pop(false); // Return false when cancelled
               },
             ),
             TextButton(
-              child: Text('Sign Out', style: TextStyle(color: AppColors.primary)),
+              child: Text(
+                'SIGN OUT',
+                style: TextStyle(color: AppColors.primary),
+              ),
               onPressed: () {
                 Navigator.of(context).pop(true); // Return true when confirmed
               },
@@ -155,6 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // If the user confirmed, then proceed with sign out
     if (confirmed == true) {
       await _authViewModel?.signOut();
+      await _authViewModel?.clearCredentials(); // Added to clear stored credentials
       if (mounted) {
         // Navigate to login screen and remove all previous routes
         Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);

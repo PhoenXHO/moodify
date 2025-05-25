@@ -33,16 +33,61 @@ class _SignupScreenState extends State<SignupScreen> {
   void signupUser() async {
     final viewmodel = Provider.of<AuthViewModel>(context, listen: false);
 
+    // Input validation
+    if (usernameController.text.trim().isEmpty) {
+      showSnackBar(context, 'Please enter a username');
+      return;
+    }
+    if (emailController.text.trim().isEmpty) {
+      showSnackBar(context, 'Please enter an email');
+      return;
+    }
+    if (!RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(emailController.text.trim())) {
+      showSnackBar(context, 'Please enter a valid email');
+      return;
+    }
+    if (passwordController.text.trim().isEmpty) {
+      showSnackBar(context, 'Please enter a password');
+      return;
+    }
+    if (passwordController.text.trim().length < 6) {
+      showSnackBar(context, 'Password must be at least 6 characters');
+      return;
+    }
+
     final success = await viewmodel.signUp(
       usernameController.text.trim(),
       emailController.text.trim(),
       passwordController.text.trim(),
-    );    if (success && mounted) {
+    );
+    if (success && mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const MainNavigator()),
       );
     } else if (mounted && viewmodel.errorMessage != null) {
       showSnackBar(context, viewmodel.errorMessage!);
+    } else if (mounted) {
+      // Generic error if no specific message from viewmodel      showSnackBar(context, 'Sign up failed. Please try again.');
+    }
+  }
+
+  Future<void> signUpWithGoogle() async {
+    final viewmodel = Provider.of<AuthViewModel>(context, listen: false);
+
+    try {
+      final success = await viewmodel.signInWithGoogle();
+
+      if (success && mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const MainNavigator()),
+        );
+      } else if (!success && mounted) {
+        showSnackBar(context, viewmodel.errorMessage ?? 'Google Sign-In failed. Please try again.');
+      }
+    } catch (e) {
+      if (mounted) {
+        showSnackBar(context, 'An error occurred during Google Sign-In.');
+      }
     }
   }
 
@@ -171,7 +216,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: 30),
+                const SizedBox(height: 16),
                 
                 // Sign up button
                 viewmodel.isLoading
@@ -180,7 +225,44 @@ class _SignupScreenState extends State<SignupScreen> {
                       )
                     : MyButtons(onTap: signupUser, text: "CREATE ACCOUNT"),
                 
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
+                
+                // Custom Google sign-up button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,                    child: ElevatedButton(
+                      onPressed: signUpWithGoogle,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.textPrimary,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: AppColors.primary, width: 2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.g_mobiledata, color: AppColors.primary, size: 32),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Sign up with Google",
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
                 
                 // Terms & conditions note
                 Padding(
@@ -195,7 +277,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: 30),
+                const SizedBox(height: 4),
                 
                 // Login redirect
                 Row(

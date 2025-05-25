@@ -6,6 +6,8 @@ import 'package:emotion_music_player/viewmodels/favorites_viewmodel.dart';
 import 'package:emotion_music_player/viewmodels/player_viewmodel.dart';
 import 'package:emotion_music_player/viewmodels/navigation_viewmodel.dart';
 import 'package:emotion_music_player/views/auth/login.dart';
+import 'package:emotion_music_player/views/splash_screen.dart';
+import 'package:emotion_music_player/views/main_navigator.dart'; // Added import
 import 'package:emotion_music_player/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -40,7 +42,8 @@ class MyApp extends StatelessWidget {
 
   // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {    return MultiProvider(
+  Widget build(BuildContext context) {
+    return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AuthViewModel()),
         ChangeNotifierProvider(create: (context) => FavoritesViewModel()),
@@ -48,21 +51,23 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => PlaylistsViewModel()),
         ChangeNotifierProvider(create: (context) => ChatViewModel()),
         ChangeNotifierProvider(create: (context) => NavigationViewModel()),
-         ChangeNotifierProxyProvider<ChatViewModel, EmotionViewModel>(
-      create: (context) => EmotionViewModel(
-        Provider.of<ChatViewModel>(context, listen: false),
-      ),
-      update: (context, chatViewModel, previousEmotionViewModel) => 
-        previousEmotionViewModel ?? EmotionViewModel(chatViewModel),
-    ),
-      ],child: MaterialApp(
-          title: 'Moodify',
-          theme: AppTheme.theme,
-          initialRoute: '/',
-          routes: {
-            '/': (context) => const LoginScreen(),
-            '/login': (context) => const LoginScreen(),
-          },
+        ChangeNotifierProxyProvider<ChatViewModel, EmotionViewModel>(
+          create: (context) => EmotionViewModel(
+            Provider.of<ChatViewModel>(context, listen: false),
+          ),
+          update: (context, chatViewModel, previousEmotionViewModel) =>
+              previousEmotionViewModel ?? EmotionViewModel(chatViewModel),
+        ),
+      ],
+      child: MaterialApp(
+        title: 'Moodify',
+        theme: AppTheme.theme,
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const SplashScreen(),
+          '/login': (context) => const LoginScreen(),
+          '/home': (context) => const MainNavigator(), // Added for direct navigation after login
+        },
       ),
     );
   }

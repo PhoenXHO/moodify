@@ -5,6 +5,7 @@ import 'package:emotion_music_player/repositories/playlist_repository.dart';
 import 'package:emotion_music_player/repositories/auth_repository.dart';
 import 'package:emotion_music_player/viewmodels/player_viewmodel.dart';
 import 'package:emotion_music_player/viewmodels/navigation_viewmodel.dart';
+import 'package:emotion_music_player/viewmodels/favorites_viewmodel.dart';
 import 'package:emotion_music_player/views/search.dart';
 import 'package:emotion_music_player/views/playlist_contents.dart';
 import 'package:emotion_music_player/widgets/song_widget.dart';
@@ -29,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   List<Playlist> _userPlaylists = [];
   bool _isLoading = true;
   String? _errorMessage;
+  late FavoritesViewModel _favoritesViewModel;
   
   // Available genres with corresponding colors and icons
   final List<Map<String, dynamic>> _genres = [
@@ -76,13 +78,47 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
   @override
   bool get wantKeepAlive => true;
-  
-  @override
+    @override
   void initState() {
     super.initState();
     _loadData();
   }
-
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _favoritesViewModel = Provider.of<FavoritesViewModel>(context, listen: false);
+    // Listen for changes to favorites
+    _favoritesViewModel.addListener(_updateFavoritesStatus);
+  }
+  
+  @override
+  void dispose() {
+    _favoritesViewModel.removeListener(_updateFavoritesStatus);
+    super.dispose();
+  }
+  
+  void _updateFavoritesStatus() {
+    if (_recentSongs.isEmpty) return;
+    
+    final favoriteIds = _favoritesViewModel.favoriteSongs
+        .map((song) => song.id)
+        .toSet();
+    
+    bool needsUpdate = false;
+    
+    for (var song in _recentSongs) {
+      final isFavorite = favoriteIds.contains(song.id);
+      if (song.isFavorite != isFavorite) {
+        song.isFavorite = isFavorite;
+        needsUpdate = true;
+      }
+    }
+    
+    if (needsUpdate && mounted) {
+      setState(() {});
+    }
+  }
   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
@@ -101,6 +137,17 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         
         // Load user playlists
         _userPlaylists = await _playlistRepository.getUserPlaylists(user.id);
+        
+        // Fetch favorites to mark songs correctly
+        await _favoritesViewModel.fetchFavorites();
+        final favoriteIds = _favoritesViewModel.favoriteSongs
+            .map((song) => song.id)
+            .toSet();
+            
+        // Update favorite status for each song
+        for (var song in _recentSongs) {
+          song.isFavorite = favoriteIds.contains(song.id);
+        }
       }
     } catch (e) {
       setState(() {

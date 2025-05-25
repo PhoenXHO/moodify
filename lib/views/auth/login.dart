@@ -23,8 +23,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Load remembered credentials if any
-    _loadRememberedCredentials();
   }
 
   @override
@@ -32,18 +30,6 @@ class _LoginScreenState extends State<LoginScreen> {
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadRememberedCredentials() async {
-    final viewmodel = Provider.of<AuthViewModel>(context, listen: false);
-    final remembered = await viewmodel.getRememberedCredentials();
-    if (remembered != null) {
-      setState(() {
-        emailController.text = remembered.email;
-        passwordController.text = remembered.password;
-        _rememberMe = true;
-      });
-    }
   }
 
   Future<void> loginUser() async {
@@ -59,20 +45,15 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (success && mounted) {
-        if (_rememberMe) {
-          await viewmodel.saveCredentials(
-            emailController.text.trim(),
-            passwordController.text.trim(),
-          );
-        } else {
-          await viewmodel.clearCredentials();
-        }        Navigator.of(context).pushReplacement(
+        Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const MainNavigator()),
         );
+      } else if (!success && mounted) {
+        showSnackBar(context, viewmodel.errorMessage ?? 'Login failed. Please check your credentials.');
       }
     } catch (e) {
       if (mounted) {
-        showSnackBar(context, viewmodel.errorMessage ?? 'An error occurred');
+        showSnackBar(context, viewmodel.errorMessage ?? 'An error occurred during login.');
       }
     }
   }
@@ -86,12 +67,30 @@ class _LoginScreenState extends State<LoginScreen> {
       showSnackBar(context, 'Please enter your password');
       return false;
     }
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-        .hasMatch(emailController.text.trim())) {
+    if (!RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(emailController.text.trim())) {
       showSnackBar(context, 'Please enter a valid email');
       return false;
     }
     return true;
+  }
+  Future<void> loginWithGoogle() async {
+    final viewmodel = Provider.of<AuthViewModel>(context, listen: false);
+
+    try {
+      final success = await viewmodel.signInWithGoogle();
+
+      if (success && mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const MainNavigator()),
+        );
+      } else if (!success && mounted) {
+        showSnackBar(context, viewmodel.errorMessage ?? 'Google Sign-In failed. Please try again.');
+      }
+    } catch (e) {
+      if (mounted) {
+        showSnackBar(context, 'An error occurred during Google Sign-In.');
+      }
+    }
   }
 
   @override
@@ -238,7 +237,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 
                 // Login button
                 if (viewmodel.isLoading)
@@ -247,6 +246,43 @@ class _LoginScreenState extends State<LoginScreen> {
                   )
                 else
                   MyButtons(onTap: loginUser, text: "SIGN IN"),
+                
+                // Google sign-in button
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: loginWithGoogle,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.textPrimary,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: AppColors.primary, width: 2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.g_mobiledata, color: AppColors.primary, size: 32),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Sign in with Google",
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
                 
                 // Forgot password
                 TextButton(
@@ -263,7 +299,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: 30),
+                const SizedBox(height: 16),
                 
                 // Sign up redirect
                 Row(

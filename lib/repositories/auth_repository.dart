@@ -8,7 +8,7 @@ class AuthRepository {
 
 
   Future<String> signUp({
-    required String username,
+    required String displayName, // Changed from username to displayName
     required String email,
     required String password,
   }) async {
@@ -17,8 +17,7 @@ class AuthRepository {
         email: email,
         password: password,
         data: {
-          'display_name': username,
-          'username': username,
+          'display_name': displayName, // Use displayName here
         },
       );
 
@@ -30,12 +29,9 @@ class AuthRepository {
     } catch (e) {
       return e.toString();
     }
-  }
-
-    Future<String> login({
+  }    Future<String> login({
     required String email,
     required String password,
-    bool rememberMe = false,
   }) async {
     try {
       final response = await _supabase.auth.signInWithPassword(
@@ -44,20 +40,16 @@ class AuthRepository {
       );
 
       if (response.user != null) {
-        if (rememberMe) {
-          await saveCredentials(Credentials(email: email, password: password));
-        } else {
-          await clearCredentials();
-        }
         return "success";
       } else {
         return "An error occurred. Please try again.";
       }
     } catch (e) {
       return e.toString();
-    }
-  }
-
+    }  }
+  
+  // These methods are now managed by the AuthViewModel
+  // We're keeping them here for backward compatibility but they should be considered deprecated
   Future<void> saveCredentials(Credentials credentials) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_credentialsKey, credentials.toJson().toString());
