@@ -135,3 +135,12 @@ flutter_native_splash:
   android_gravity: center
   ios_content_mode: center
   fullscreen: true
+  android_12:
+    image: "assets/icons/app_icon.png"
+    icon_background_color: "#000000"
+  android_screen_orientation: portrait
+  image_dark: "assets/icons/app_icon.png"
+  color_dark: "#000000"
+  # Ensure background mode is correct
+  background_image_android: "assets/icons/transparent.png"
+  background_image_ios: "assets/icons/transparent.png"
