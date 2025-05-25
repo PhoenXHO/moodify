@@ -61,6 +61,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -72,13 +74,13 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-
   # To add assets to your application, add an assets section, like this:
   assets:
     - .env
     - images/
     - assets/
     - assets/ai_config.yaml
+    - assets/icons/
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
@@ -104,3 +106,32 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# App Icon Config
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/icons/app_icon.png"
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+  windows:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+  macos:
+    generate: true
+    image_path: "assets/icons/app_icon.png"
+
+# Splash Screen Config
+flutter_native_splash:
+  color: "#000000"
+  image: "assets/icons/app_icon.png"
+  android: true
+  ios: true
+  web: false
+  android_gravity: center
+  ios_content_mode: center
+  fullscreen: true
