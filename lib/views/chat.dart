@@ -8,6 +8,7 @@ import '../theme/dimensions.dart';
 import '../viewmodels/chat_viewmodel.dart';
 import '../viewmodels/player_viewmodel.dart';
 import '../widgets/message_bubble.dart';
+import '../widgets/playlist_message_bubble.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? initialPrompt;
@@ -278,14 +279,23 @@ class _ChatScreenState extends State<ChatScreen> {
                           ],
                         ),
                       );
-                    }
-
-                    final messageIndex = index - 1; // Adjust for welcome message
+                    }                    final messageIndex = index - 1; // Adjust for welcome message
                     final message = viewModel.messages[messageIndex];
-                    return MessageBubble(
-                      message: message.text,
-                      isUserMessage: message.isUserMessage,
-                    );
+                    
+                    // Check if this is a playlist message
+                    if (message.isPlaylistMessage && message.playlistName != null) {
+                      return PlaylistMessageBubble(
+                        message: message.text,
+                        playlistName: message.playlistName!,
+                        playlistId: message.playlistId,
+                      );
+                    } else {
+                      // Regular message
+                      return MessageBubble(
+                        message: message.text,
+                        isUserMessage: message.isUserMessage,
+                      );
+                    }
                   },
                 );
               },

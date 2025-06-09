@@ -275,4 +275,40 @@ class SongRepository {
       return [];
     }
   }
+
+  // Get all unique moods from the database
+  Future<List<String>> getAllUniqueMoods() async {
+    try {
+      final allSongs = await getAllSongs();
+      final Set<String> uniqueMoods = {};
+      
+      // Extract all moods from songs
+      for (var song in allSongs) {
+        uniqueMoods.addAll(song.moods);
+      }
+      
+      return uniqueMoods.toList()..sort();
+    } catch (e) {
+      print("Error fetching unique moods: $e");
+      return [];
+    }
+  }
+
+  // Get all unique genres from the database
+  Future<List<String>> getAllUniqueGenres() async {
+    try {
+      final allSongs = await getAllSongs();
+      final Set<String> uniqueGenres = {};
+      
+      // Extract all genres from songs
+      for (var song in allSongs) {
+        uniqueGenres.addAll(song.genres);
+      }
+      
+      return uniqueGenres.toList()..sort();
+    } catch (e) {
+      print("Error fetching unique genres: $e");
+      return [];
+    }
+  }
 }

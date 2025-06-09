@@ -87,54 +87,62 @@ class ChatViewModel extends ChangeNotifier {
       _setLoading(false);
     }
   }
-
+  
   Future<void> sendMessage(String text) async {
     if (_userId == null || text.trim().isEmpty) return;
 
     final userMessage = text.trim();
     // Add user message immediately
     await _chatService.addMessage(_userId!, userMessage, isUserMessage: true);
-
-    // Optionally, set a flag for AI thinking, if a more subtle indicator is desired later
-    // bool wasAiThinking = false; 
+    
+    //_setLoading(true);
 
     try {
-      // Prepare chat history context (using messages *before* the latest user message)
+      // Prepare chat history context
       final history = _getFormattedChatHistory();
+      String prompt = userMessage;
+      bool isMusicRequest = _isMusicRelatedRequest(userMessage);
 
-      // Indicate AI is working (e.g., for a subtle UI update if needed)
-      // wasAiThinking = true; 
-      // notifyListeners(); // If a specific flag for "AI thinking" is added
-
-      // Get AI response
-      final aiResponseString = await _aiService.getAiResponse(userMessage, history);
+      // If this looks like a music/playlist request, provide moods and genres context
+      if (isMusicRequest) {
+        // Fetch all unique moods and genres
+        final List<String> moods = await _songRepository.getAllUniqueMoods();
+        final List<String> genres = await _songRepository.getAllUniqueGenres();
+        
+        // Format the request with moods and genres
+        prompt = _formatMoodsAndGenresPrompt(moods, genres, userMessage);
+        
+        // Add explicit instruction for function call requirement
+        prompt = "IMPORTANT: You MUST respond with ONLY this exact JSON format: {\"function\": \"FILTER_SONGS\", \"parameters\": {\"irrelevant_moods\": [...], \"irrelevant_genres\": [...]}}, with no other text. DO NOT use function_name or args in your response. " + prompt;
+      }
+	  
+	  // Get AI response with the appropriate prompt
+      final aiResponseString = await _aiService.getAiResponse(prompt, history);
       print("AI response: $aiResponseString");
 
       // Try to parse for a function call
       final functionCall = AiService.tryParseFunctionCall(aiResponseString);
 
+      // Handle the response based on whether it's a music request and a function call
       if (functionCall != null) {
         // Store the original request if starting a function sequence
         _originalUserRequest = userMessage;
         await _handleFunctionCall(functionCall);
       } else {
-        // If not a function call, just add the response as a message
+        // If not a function call or music request, just add the response as a message
         await _chatService.addMessage(_userId!, aiResponseString, isUserMessage: false);
         _originalUserRequest = null; // Clear original request if it was a normal message
       }
-    } catch (e) {
+	} catch (e) {
       print('Error sending message or getting AI response: $e');
       await _chatService.addMessage(
         _userId!,
         'Sorry, I encountered an error processing your request. Please try again.',
         isUserMessage: false,
       );
-       _originalUserRequest = null; // Clear original request on error
+      _originalUserRequest = null; // Clear original request on error
     } finally {
-      // _setLoading(false); // Removed as _setLoading(true) was removed
-      // if (wasAiThinking) {
-        // Clear any "AI thinking" indicator
-      // }
+      _setLoading(false);
     }
   }
 
@@ -286,8 +294,10 @@ class ChatViewModel extends ChangeNotifier {
       if (playlistId != null) {
         await _chatService.addMessage(
           _userId!,
-          "I've created a playlist named \"$cleanTitle\" with ${songIds.length} songs based on your request. You can find it in your library!",
+          "I've created a playlist with ${songIds.length} songs based on your request. You can find it in your library!",
           isUserMessage: false,
+          playlistId: playlistId,
+          playlistName: cleanTitle,
         );
       } else {
         await _chatService.addMessage(
@@ -336,16 +346,7 @@ class ChatViewModel extends ChangeNotifier {
 
   // --- Prompt Formatting Helpers ---
 
-  String _formatAllSongsMetadataPrompt(List<Map<String, dynamic>> songsMetadata, String userRequest) {
-    final buffer = StringBuffer("List of songs in the database:\n");
-    for (final songMeta in songsMetadata) {
-      buffer.writeln(
-        "- ${songMeta['title']}: { 'id': ${songMeta['id']}, 'moods': ${songMeta['moods']}, 'genres': ${songMeta['genres']} }, favorite count: ${songMeta['favorite_count']}"
-      );
-    }
-    buffer.writeln("\nUser request: $userRequest");
-    return buffer.toString();
-  }
+  // This space intentionally left blank
 
    String _formatSelectSongsPrompt(List<Song> songs, String originalRequest) {
     final buffer = StringBuffer(
@@ -354,6 +355,17 @@ class ChatViewModel extends ChangeNotifier {
       buffer.writeln(
           "- ${song.title}: { 'id': ${song.id}, 'moods': ${song.moods}, 'genres': ${song.genres} }, favorite count: ${song.favoriteCount}");
     }
+    return buffer.toString();
+  }
+
+  // Format the available moods and genres for the AI
+  String _formatMoodsAndGenresPrompt(List<String> moods, List<String> genres, String userRequest) {
+    final buffer = StringBuffer("Available moods and genres in the database:\n");
+    
+    buffer.writeln("MOODS: ${moods.join(', ')}");
+    buffer.writeln("GENRES: ${genres.join(', ')}");
+    
+    buffer.writeln("\nUser request: $userRequest");
     return buffer.toString();
   }
 
@@ -464,5 +476,20 @@ class ChatViewModel extends ChangeNotifier {
       );
     } finally {      _setLoading(false);
     }
+  }
+
+  // Check if a request is music-related
+  bool _isMusicRelatedRequest(String text) {
+    final lowerText = text.toLowerCase();
+    
+    final List<String> musicKeywords = [
+      'playlist', 'music', 'song', 'songs', 'track', 'tracks', 
+      'listen', 'mood', 'genre', 'artist', 'album', 'vibe',
+      'create', 'make', 'generate', 'recommend', 'suggest',
+      'happy', 'sad', 'energetic', 'calm', 'workout', 'study',
+      'relax', 'party', 'dance', 'chill', 'focus', 'concentrate'
+    ];
+    
+    return musicKeywords.any((keyword) => lowerText.contains(keyword));
   }
 }

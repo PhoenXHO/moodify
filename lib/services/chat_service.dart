@@ -42,17 +42,35 @@ class ChatService {
   }
 
   // Send a message
-  Future<void> addMessage(String userId, String text, {bool isUserMessage = true}) async {
+  Future<void> addMessage(String userId, String text, {
+    bool isUserMessage = true, 
+    String? playlistId,
+    String? playlistName,
+  }) async {
     final message = ChatMessage(
       userId: userId,
       text: text,
       isUserMessage: isUserMessage,
       timestamp: DateTime.now(),
+      playlistId: playlistId,
+      playlistName: playlistName,
+      isPlaylistMessage: playlistId != null && playlistName != null,
     );
 
     _messages.add(message);
     await _chatRepository.saveMessage(message); 
     _notifyListeners();
+  }
+  
+  // Helper method for adding playlist messages
+  Future<void> addPlaylistMessage(String userId, String text, String playlistId, String playlistName) async {
+    await addMessage(
+      userId, 
+      text, 
+      isUserMessage: false,
+      playlistId: playlistId,
+      playlistName: playlistName,
+    );
   }
 
   // Clear chat history
