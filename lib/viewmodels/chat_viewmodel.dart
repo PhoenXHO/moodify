@@ -19,6 +19,8 @@ class ChatViewModel extends ChangeNotifier {
 
   List<ChatMessage> _messages = [];
   bool _isLoading = false;
+  bool _isAiTyping = false; // Indicates the AI is "typing" (generating a response)
+  bool _isGeneratingPlaylist = false; // Specifically for playlist generation
   StreamSubscription? _messageSubscription;
   String? _userId;
   String? _originalUserRequest; // Store original request during multi-step AI calls
@@ -27,6 +29,8 @@ class ChatViewModel extends ChangeNotifier {
 
   List<ChatMessage> get messages => _messages;
   bool get isLoading => _isLoading;
+  bool get isAiTyping => _isAiTyping;
+  bool get isGeneratingPlaylist => _isGeneratingPlaylist;
   int get messageCount => _messages.length;
 
   ChatViewModel() {
@@ -95,7 +99,8 @@ class ChatViewModel extends ChangeNotifier {
     // Add user message immediately
     await _chatService.addMessage(_userId!, userMessage, isUserMessage: true);
     
-    //_setLoading(true);
+    // Show AI "typing" indicator
+    setAiTyping(true, isPlaylistGeneration: false);
 
     try {
       // Prepare chat history context
@@ -116,7 +121,7 @@ class ChatViewModel extends ChangeNotifier {
         prompt = "IMPORTANT: You MUST respond with ONLY this exact JSON format: {\"function\": \"FILTER_SONGS\", \"parameters\": {\"irrelevant_moods\": [...], \"irrelevant_genres\": [...]}}, with no other text. DO NOT use function_name or args in your response. " + prompt;
       }
 	  
-	  // Get AI response with the appropriate prompt
+	    // Get AI response with the appropriate prompt
       final aiResponseString = await _aiService.getAiResponse(prompt, history);
       print("AI response: $aiResponseString");
 
@@ -130,11 +135,13 @@ class ChatViewModel extends ChangeNotifier {
         await _handleFunctionCall(functionCall);
       } else {
         // If not a function call or music request, just add the response as a message
+        setAiTyping(false); // Hide typing indicator before showing the message
         await _chatService.addMessage(_userId!, aiResponseString, isUserMessage: false);
         _originalUserRequest = null; // Clear original request if it was a normal message
       }
 	} catch (e) {
       print('Error sending message or getting AI response: $e');
+      setAiTyping(false); // Hide typing indicator on error
       await _chatService.addMessage(
         _userId!,
         'Sorry, I encountered an error processing your request. Please try again.',
@@ -147,21 +154,26 @@ class ChatViewModel extends ChangeNotifier {
   }
 
   // --- Function Call Handling ---
-
   Future<void> _handleFunctionCall(Map<String, dynamic> functionCall) async {
     final functionName = functionCall['function'];
     final parameters = functionCall['parameters'] as Map<String, dynamic>;
 
     switch (functionName) {
       case 'FILTER_SONGS':
+        // For filter songs, keep the typing indicator but not playlist generation
+        setAiTyping(true, isPlaylistGeneration: false);
         await _handleFilterSongs(parameters);
         break;
       case 'SELECT_SONGS':
+        // For SELECT_SONGS, show playlist generation indicator
+        setAiTyping(true, isPlaylistGeneration: true);
+        
         // Handle song selection and playlist creation
         final songIds = List<String>.from(parameters['song_ids'] ?? []);
         if (songIds.isNotEmpty && _originalUserRequest != null) {
           await _createPlaylistFromSelectedSongs(songIds, _originalUserRequest!);
         } else {
+          setAiTyping(false);
           await _chatService.addMessage(
             _userId!,
             "I couldn't create a playlist because no songs were selected or the request was lost.",
@@ -229,9 +241,7 @@ class ChatViewModel extends ChangeNotifier {
       final history = _getFormattedChatHistory(); // Get history again for context
 
       // 4. Call AI again to select songs from the filtered list
-      final aiResponseString = await _aiService.getAiResponse(prompt, history);
-
-      // 5. Parse the second response for SELECT_SONGS function call
+      final aiResponseString = await _aiService.getAiResponse(prompt, history);      // 5. Parse the second response for SELECT_SONGS function call
       final functionCall = AiService.tryParseFunctionCall(aiResponseString);
 
       if (functionCall != null && functionCall['function'] == 'SELECT_SONGS') {
@@ -240,6 +250,7 @@ class ChatViewModel extends ChangeNotifier {
       } else {
         // If the second call didn't return the expected function or failed parsing
         print("AI did not return SELECT_SONGS as expected. Response: $aiResponseString");
+        setAiTyping(false); // Hide typing indicator before showing the message
         await _chatService.addMessage(
           _userId!,
           "I got the filtered songs, but had trouble selecting the final list. Here's the raw response: $aiResponseString", // Or a more user-friendly error
@@ -249,6 +260,7 @@ class ChatViewModel extends ChangeNotifier {
       }
     } catch (e) {
       print('Error during song filtering/selection process: $e');
+      setAiTyping(false); // Hide typing indicator on error
       await _chatService.addMessage(
         _userId!,
         'Sorry, an error occurred while finding songs for you. Please try again.',
@@ -256,12 +268,13 @@ class ChatViewModel extends ChangeNotifier {
       );
        _originalUserRequest = null; // Clear original request on error
     } finally {
-       // Loading state is handled by the final call to _handleFunctionCall or error handling
+       // This is handled by other methods that check AI typing state
     }
   }
 
   Future<void> _createPlaylistFromSelectedSongs(List<String> songIds, String userRequest) async {
     if (_userId == null) {
+      setAiTyping(false); // Hide typing indicator
       await _chatService.addMessage(
         _userId!,
         "You need to be logged in to create playlists.",
@@ -275,7 +288,9 @@ class ChatViewModel extends ChangeNotifier {
       final history = _getFormattedChatHistory();
       final promptForTitle = "Create a short, catchy playlist title (max 5 words) based on this user request, without quotes or explanation: $userRequest";
       
-      _setLoading(true);
+      // Keep the playlist generating indicator visible
+      setAiTyping(true, isPlaylistGeneration: true);
+      
       final titleResponse = await _aiService.getAiResponse(promptForTitle, history);
       
       // Clean the title (remove quotes and any additional text)
@@ -291,6 +306,9 @@ class ChatViewModel extends ChangeNotifier {
         songIds: songIds,
       );
       
+      // Hide the typing indicator before showing the message
+      setAiTyping(false);
+      
       if (playlistId != null) {
         await _chatService.addMessage(
           _userId!,
@@ -305,9 +323,9 @@ class ChatViewModel extends ChangeNotifier {
           "I selected songs for you but couldn't create the playlist due to an error. Please try again later.",
           isUserMessage: false,
         );
-      }
-    } catch (e) {
+      }    } catch (e) {
       print("Error creating playlist: $e");
+      setAiTyping(false); // Hide typing indicator on error
       await _chatService.addMessage(
         _userId!,
         "I encountered an error while creating your playlist. Please try again later.",
@@ -315,6 +333,7 @@ class ChatViewModel extends ChangeNotifier {
       );
     } finally {
       _setLoading(false);
+      setAiTyping(false); // Ensure typing indicator is hidden
     }
   }
   
@@ -419,11 +438,18 @@ class ChatViewModel extends ChangeNotifier {
       _setLoading(false);
     }
   }
-
   void _setLoading(bool value) {
     // Avoid unnecessary notifications if the state hasn't changed
     if (_isLoading != value) {
       _isLoading = value;
+      notifyListeners();
+    }
+  }
+  
+  void setAiTyping(bool isTyping, {bool isPlaylistGeneration = false}) {
+    if (_isAiTyping != isTyping || _isGeneratingPlaylist != isPlaylistGeneration) {
+      _isAiTyping = isTyping;
+      _isGeneratingPlaylist = isTyping && isPlaylistGeneration;
       notifyListeners();
     }
   }

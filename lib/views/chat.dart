@@ -9,6 +9,7 @@ import '../viewmodels/chat_viewmodel.dart';
 import '../viewmodels/player_viewmodel.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/playlist_message_bubble.dart';
+import '../widgets/ai_typing_indicator.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? initialPrompt;
@@ -48,10 +49,9 @@ class _ChatScreenState extends State<ChatScreen> {
     // Listen for changes to the message list
     _chatViewModel.addListener(_onViewModelChanged);
   }
-
   void _onViewModelChanged() {
-    // Only scroll to bottom if new messages are added
-    if (_chatViewModel.messageCount > _previousMessageCount) {
+    // Scroll to bottom if new messages are added or AI starts typing
+    if (_chatViewModel.messageCount > _previousMessageCount || _chatViewModel.isAiTyping) {
       _previousMessageCount = _chatViewModel.messageCount;
       _scrollToBottom();
     }
@@ -222,81 +222,94 @@ class _ChatScreenState extends State<ChatScreen> {
                       ],
                     ),
                   );
-                }
-
-                // Update the previous message count for the listener check
+                }                // Update the previous message count for the listener check
                 _previousMessageCount = viewModel.messageCount;
-
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: EdgeInsets.only(
-                    left: 16.0,
-                    right: 16.0,
-                    top: 16.0,
-                    bottom: isMiniPlayerVisible ? Dimensions.miniPlayerMinimizedHeight + 16.0 : 16.0,
-                  ),
-                  itemCount: viewModel.messageCount + 1, // Add 1 for the welcome message
-                  itemBuilder: (context, index) {
-                    // Show a welcome message at the top
-                    if (index == 0) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 16.0),
-                        padding: const EdgeInsets.all(16.0),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceLight.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(16.0),
-                          border: Border.all(color: AppColors.divider, width: 1),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                
+                return Stack(
+                  children: [
+                    ListView.builder(
+                      controller: _scrollController,
+                      padding: EdgeInsets.only(
+                        left: 16.0,
+                        right: 16.0,
+                        top: 16.0,
+                        bottom: isMiniPlayerVisible ? Dimensions.miniPlayerMinimizedHeight + 16.0 : 16.0,
+                      ),
+                      itemCount: viewModel.messageCount + 1 + (viewModel.isAiTyping ? 1 : 0), // Welcome message + messages + typing indicator
+                      itemBuilder: (context, index) {
+                        // Show a welcome message at the top
+                        if (index == 0) {
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 16.0),
+                            padding: const EdgeInsets.all(16.0),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceLight.withOpacity(0.8),
+                              borderRadius: BorderRadius.circular(16.0),
+                              border: Border.all(color: AppColors.divider, width: 1),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(
-                                  Icons.music_note_rounded,
-                                  color: AppColors.primary,
-                                  size: 20,
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.music_note_rounded,
+                                      color: AppColors.primary,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Welcome to Music Assistant',
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(height: 8),
                                 Text(
-                                  'Welcome to Music Assistant',
+                                  'Ask me to find songs, create playlists, or recommend music based on your mood!',
                                   style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                    color: AppColors.textPrimary,
+                                    fontSize: 14,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Ask me to find songs, create playlists, or recommend music based on your mood!',
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 14,
-                              ),
+                          );
+                        }                        final messageIndex = index - 1; // Adjust for welcome message
+                          // If we're at the end of the list and the AI is typing, show the indicator
+                        if (messageIndex == viewModel.messages.length && viewModel.isAiTyping) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8.0), 
+                            child: AiTypingIndicator(
+                              isGeneratingPlaylist: viewModel.isGeneratingPlaylist,
                             ),
-                          ],
-                        ),
-                      );
-                    }                    final messageIndex = index - 1; // Adjust for welcome message
-                    final message = viewModel.messages[messageIndex];
-                    
-                    // Check if this is a playlist message
-                    if (message.isPlaylistMessage && message.playlistName != null) {
-                      return PlaylistMessageBubble(
-                        message: message.text,
-                        playlistName: message.playlistName!,
-                        playlistId: message.playlistId,
-                      );
-                    } else {
-                      // Regular message
-                      return MessageBubble(
-                        message: message.text,
-                        isUserMessage: message.isUserMessage,
-                      );
-                    }
-                  },
+                          );
+                        }
+                        
+                        // Regular message handling
+                        final message = viewModel.messages[messageIndex];
+                        
+                        // Check if this is a playlist message
+                        if (message.isPlaylistMessage && message.playlistName != null) {
+                          return PlaylistMessageBubble(
+                            message: message.text,
+                            playlistName: message.playlistName!,
+                            playlistId: message.playlistId,
+                          );
+                        } else {
+                          // Regular message
+                          return MessageBubble(
+                            message: message.text,
+                            isUserMessage: message.isUserMessage,
+                          );
+                        }
+                      },
+                    ),
+                  ],
                 );
               },
             ),
