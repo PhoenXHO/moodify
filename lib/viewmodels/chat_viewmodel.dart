@@ -161,7 +161,7 @@ class ChatViewModel extends ChangeNotifier {
     switch (functionName) {
       case 'FILTER_SONGS':
         // For filter songs, keep the typing indicator but not playlist generation
-        setAiTyping(true, isPlaylistGeneration: false);
+        setAiTyping(true, isPlaylistGeneration: true);
         await _handleFilterSongs(parameters);
         break;
       case 'SELECT_SONGS':
